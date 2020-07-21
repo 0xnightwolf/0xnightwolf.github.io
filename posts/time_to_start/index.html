@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.74.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>The Wolf Den</title><link rel="stylesheet" href="/css/core.min.ab321a2ad61315bebb72e6e3fa1108c4e8ffe4eada5cf5f20131d183a523496246d761df8fc832549be5b9dd47c40509.css" integrity="sha384-qzIaKtYTFb67cubj&#43;hEIxOj/5OraXPXyATHRg6UjSWJG12Hfj8gyVJvlud1HxAUJ"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><span class="site name">The Wolf Den</span></a></span>
+        <span class="header right-side"></span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title"></h1></section><article class="article markdown-body"><h1 id="kerneltime_to_start">Kernel::Time_To_Start</h1>
+<p>Challenge Description</p>
+<pre><code>Welcome to pwnyOS!!
+
+pwnyOS is a custom x86 operating system that supports link-time kASLR, multitasking and kernel threads, execution of genuine ELF files, a realtime high resolution graphics engine, and a custom hierarchical file system. This OS was written from the ground up with its use as a challenge for UIUCTF 2020 in mind. All source code in the OS is 100% custom handwritten C and assembly- there are no libraries used, and none of its code can be found anywhere online. This competition simulates an unprivileged user with physical access to a keyboard and terminal attempting to gain local privilege escalation on an unfamiliar system.
+
+Documentation: https://github.com/sigpwny/pwnyOS-2020-docs/blob/master/Getting_Started.pdf
+
+System Calls: https://github.com/sigpwny/pwnyOS-2020-docs/blob/master/Syscalls.pdf
+
+For your first challenge: Login to the OS with username sandb0x
+
+Password is 4 characters, all lowercase letters. First character is 'p'. I wonder if there's a way to leak the next char, knowing that the first part of the password is right...?
+
+Author: ravi
+</code></pre><h2 id="login">Login</h2>
+<p>We connect to our VM and are created by an excellent login page.
+<img  src="/img/Login.png"
+        alt/>
+We have a username <code>sandb0x</code> but only the first character for the password so we need to find a way to get the rest of it.</p>
+<h2 id="solution">Solution</h2>
+<p>We know the first character will be the letter <code>p</code> Since we know the first character we start playing around with some characters that we know are incorrect. We notice that any other character quickly returns <code>incorrect</code> while for <code>p</code> the response takes a bit longer. Based off this and the reference to time in the challenge name we can guess this is some kind of timing attack.</p>
+<p>The basic idea is that there will be a discrepancy in the time that it takes to complete certain actions. That serves to leak information about checked values.</p>
+<p>We start trying different characters and tracking how long it takes pwnyOS to respond. We notice that the responses are fairly close to each other. However, as we continue we notice a single character, <code>w</code>, takes longer to respond than the others. Perhaps, this is the second character of the password.</p>
+<pre><code> pa 1.49 sec
+ pb 1.49 sec
+ pc 1.19 sec
+ pd 1.43 sec
+ pe 1.23 sec
+ ...
+ pw 2.09 sec
+ px 1.47 sec
+ py 1.22 sec
+ pz 1.42 sec
+
+</code></pre><p>We then start search for the third character and once again notice another character that takes longer than all the others. Seems we are on the right track. We know have three characters. <code>pwn</code></p>
+<pre><code>pwa 2.10 sec
+pwb 2.08 sec
+pwc 2.20 sec
+pwd 2.58 sec
+pwe 2.47 sec
+...
+pwn 3.31 sec
+pwo 2.40 sec
+pwp 2.30 sec
+pwq 2.17 sec
+</code></pre><p>We know the password is four characters long so we are nearly there. For kicks we do the same timing and notice that this time there is a character that leads to a <em>much</em> faster response.</p>
+<pre><code>pwna 3.04 sec
+pwnb 3.29 sec
+pwnc 3.11 sec
+pwnd 2.95 sec
+pwne 3.44 sec
+...
+pwny 0.85 sec
+pwnx 3.31 sec
+pwnz 3.38 sec
+</code></pre><p>We can also assume this is the correct password as we are created by a welcome screen. :-)</p>
+<p><img  src="/img/WelcomeScreen.png"
+        alt/></p>
+</article></div>
+<div class="article bottom"><section class="article navigation"></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">The Wolf Den</p>
+    <p class="powerby"><span>Powered&nbsp;by&nbsp;</span><a href="https://gohugo.io" 
+        target="_blank">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank">Notepadium</a></p></div></section></body>
+
+</html>

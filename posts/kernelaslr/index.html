@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.74.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>The Wolf Den</title><link rel="stylesheet" href="/css/core.min.ab321a2ad61315bebb72e6e3fa1108c4e8ffe4eada5cf5f20131d183a523496246d761df8fc832549be5b9dd47c40509.css" integrity="sha384-qzIaKtYTFb67cubj&#43;hEIxOj/5OraXPXyATHRg6UjSWJG12Hfj8gyVJvlud1HxAUJ"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><span class="site name">The Wolf Den</span></a></span>
+        <span class="header right-side"></span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title"></h1></section><article class="article markdown-body"><h1 id="kernel_memory_leak">Kernel_Memory_Leak</h1>
+<pre><code>The kernel is leaking memory to the user! That's probably not good, right?
+
+One of the syscalls can be convinced to leak the kernel stack. Find the leak and you'll receive a flag. Keep leaking kernel secrets until you see the }.
+
+(Hint: finding the leak is half the battle, getting it to leak the entire flag requires some outside the box thinking)
+
+Author: ravi
+</code></pre><p><strong>Disclaimer</strong> I was unable to solve this challenge until after the CTF had officially ended.</p>
+<h2 id="solution">Solution</h2>
+<p>I wasn&rsquo;t able to find the syscall that was vulnerable until about an hour after the CTF had ended. It was then shared that the vulnerable call was <code>alert</code> at this point I decided to see if I could use that to solve the rest of the challenge. We can call this syscall from within the rash shell without using binexec.</p>
+<p><img  src="/img/AlertExample.png"
+        alt="alert example"/></p>
+<p>It function fairly simply. <code>alert [text to be displayed as an alert]</code> We start trying different inputs seeing if we can generate some kind of an error that we can use to figure out what is going on behind the scenes. We try special characters, inputting more data then can be displayed and alert (unfortunately) handles it like a champ. We then try checking for some kind of format string vulnerability.</p>
+<p><img  src="/img/Alertpercents.png"
+        alt="KernelPanic"/></p>
+<p>Oh dear. Kernel Panic. That&rsquo;s not good. Or is it?  That address <code>0x75607563</code> looks rather interesting. If we convert the hex to ascii we get some familiar characters, <code>uiuc</code> That looks like the beginning of a flag doesn&rsquo;t it?</p>
+<p>We reboot our VM and try again. This time we use <code>%c</code>s as this will leak the date as readable characters and allow us to save space in the alert box.</p>
+<pre><code>alert %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c
+</code></pre><p>This gives us <em>most</em> of the flag it seems. <code>uiuctf{aed05bs4417$#4c644</code> But we seem to be missing some of it.</p>
+<p><img  src="/img/PartFlag.png"
+        alt/></p>
+<h2 id="kernel-panics">Kernel Panics</h2>
+<p>Now we have a slight problem. We have some of the flag but alert box won&rsquo;t display the rest of the flag.  The challenges descriptions says we might need to &ldquo;think outside the box&rdquo; and fortunately, I have an idea. Remember how we first tried to get data using the alert function we caused a kernel panic? That actually leaked the hex codes of the first several characters. Maybe we can use kernel panics to leak characters getting cut off by the  alert box.</p>
+<p>Sure enough we can.</p>
+<pre><code>alert %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%s
+</code></pre><p>This allows us to leak two more bytes but we haven&rsquo;t got a closing bracket so we add a few more characters and cause another panic.</p>
+<pre><code>alert %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%s
+</code></pre><p>Kernel Panic!!! And we get the final bytes of the flag. Totally worth it. <em>Sorry, pwnyOS.</em></p>
+<p><img  src="/img/TheLongLeakResults.png"
+        alt/></p>
+<p>We convert the final hex codes to ascii and now have the rest of the flag.
+<code>uiuctf{aed05ba24417$#4c64411096}</code></p>
+</article></div>
+<div class="article bottom"><section class="article navigation"></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">The Wolf Den</p>
+    <p class="powerby"><span>Powered&nbsp;by&nbsp;</span><a href="https://gohugo.io" 
+        target="_blank">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank">Notepadium</a></p></div></section></body>
+
+</html>

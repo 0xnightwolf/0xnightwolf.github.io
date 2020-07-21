@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Posts on The Wolf Den</title>
+    <link>/posts/</link>
+    <description>Recent content in Posts on The Wolf Den</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    
+        <atom:link href="/posts/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title></title>
+      <link>/posts/kernelaslr/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/kernelaslr/</guid>
+      <description>Kernel_Memory_Leak The kernel is leaking memory to the user! That&#39;s probably not good, right?One of the syscalls can be convinced to leak the kernel stack. Find the leak and you&#39;ll receive a flag. Keep leaking kernel secrets until you see the }.(Hint: finding the leak is half the battle, getting it to leak the entire flag requires some outside the box thinking)Author: raviDisclaimer I was unable to solve this challenge until after the CTF had officially ended.</description>
+      
+    </item>
+    
+    <item>
+      <title></title>
+      <link>/posts/time_to_start/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/time_to_start/</guid>
+      <description>Kernel::Time_To_Start Challenge Description
+Welcome to pwnyOS!!pwnyOS is a custom x86 operating system that supports link-time kASLR, multitasking and kernel threads, execution of genuine ELF files, a realtime high resolution graphics engine, and a custom hierarchical file system. This OS was written from the ground up with its use as a challenge for UIUCTF 2020 in mind. All source code in the OS is 100% custom handwritten C and assembly- there are no libraries used, and none of its code can be found anywhere online.</description>
+      
+    </item>
+    
+    <item>
+      <title></title>
+      <link>/posts/whats_a_syscall/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/whats_a_syscall/</guid>
+      <description>Whats_A_Syscall? Challenge Description
+Syscall 14 is known as &amp;quot;SANDBOX_SPECIAL&amp;quot;... I wonder if that would be useful here.You&#39;ll be stuck in a never ending loop of binexec until you perform syscall 14.To learn about syscalls and how they work in pwnyOS, check out the documentation!System Calls in pwnyOS: https://github.com/sigpwny/pwnyOS-2020-docs/blob/master/Syscalls.pdfAuthor: raviSolution We start out with a welcome screen and are told that we are in a sandbox.</description>
+      
+    </item>
+    
+  </channel>
+</rss>
