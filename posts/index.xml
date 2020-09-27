@@ -6,10 +6,22 @@
     <description>Recent content in Posts on The Wolf Den</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 20 Jul 2020 17:44:50 -0602</lastBuildDate>
+    <lastBuildDate>Sat, 26 Sep 2020 17:44:50 -0600</lastBuildDate>
     
         <atom:link href="/posts/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>HTB Admirer</title>
+      <link>/posts/admirer_writeup/</link>
+      <pubDate>Sat, 26 Sep 2020 17:44:50 -0600</pubDate>
+      
+      <guid>/posts/admirer_writeup/</guid>
+      <description>Admirer Admirer is a Linux box that features a vulnerable database setup and leveraging a maliciously crafted python library to achieve root.
+Enumeration We start off, as always, with an NMAP Scan.
+Nmap scan report for 10.10.10.187Host is up (0.12s latency).Not shown: 997 closed portsPORT STATE SERVICE VERSION21/tcp open ftp vsftpd 3.0.322/tcp open ssh OpenSSH 7.4p1 Debian 10+deb9u7 (protocol 2.0)| ssh-hostkey:| 2048 4a:71:e9:21:63:69:9d:cb:dd:84:02:1a:23:97:e1:b9 (RSA)| 256 c5:95:b6:21:4d:46:a4:25:55:7a:87:3e:19:a8:e7:02 (ECDSA)|_ 256 d0:2d:dd:d0:5c:42:f8:7b:31:5a:be:57:c4:a9:a7:56 (ED25519)80/tcp open http Apache httpd 2.</description>
+      
+    </item>
     
     <item>
       <title>UIUCTF Kernel_Memory_Leak</title>
