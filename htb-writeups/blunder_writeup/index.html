@@ -100,11 +100,12 @@ of arbitrary PHP code. There is a Metasploit module however it is also easy enou
 <p>Some quick enumeration shows that we are www-data and don&rsquo;t seem to have any low hanging fruit in reach. We are able to find user.txt in /home/hugo but we lack the
 permissions to read it. I got stuck here for a bit. Ran around all over the box, crashed a few shells, ran linpeas, and missed what had been sitting in front my nose
 the whole time.</p>
-<p>All the files  to run Bludit are on the box including, the config file that sets up user accounts and login details. <code>/var/www-data//bludit-3.9.2/bl-content/databases/users.php</code>  It contains the hash for an <code>admin</code> of the Bludit site. How convenient.</p>
+<p>All the files  to run Bludit are on the box including, the config file that sets up user accounts and login details. <code>/var/www-data//bludit-3.9.2/bl-content/databases/users.php</code>  It contains the hash and salt for an <code>admin</code> of the Bludit site.</p>
 <p><img  src="/img/Blunder_BluditUsersphp.png"
         alt/></p>
-<p>We copy this hash over to our host and run it through hash identifier. It comes back as sha-1. Lucky for us,  we can try it in crackstation. We get a match.  <code>Password120</code>
-Seems we have a robust password policy here.</p>
+<p>We copy this hash over to our host and run it through hash identifier. It comes back as sha-1. We spend some time trying to crack it but are unsuccessful.</p>
+<p>We got back to enumerating on the box and find a config file for an older version of Bludit. <code>/var/www-data//bludit-3.9.1/bl-content/databases/users.php</code> It contains the hash for the user Hugo, <code>faca404fd5c0a31cf187b823c695c85cffeb98d</code> There is no salt in this case though it is also sha1. How convenient. We run it through crackstation and we get a match.  <code>Password120</code></p>
+<p>Seems we have a robust password policy here.</p>
 <p>We try to su to hugo and are successful! We claim user.txt and head on to root.</p>
 <h2 id="roottxt">Root.txt</h2>
 <p>We start some basic enumeration and find that we are specifically <em>not</em> allowed to run /bin/bash as root. Very unfortunate.</p>
