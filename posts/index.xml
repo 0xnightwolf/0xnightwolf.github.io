@@ -6,10 +6,22 @@
     <description>Recent content in Posts on The Wolf Den</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 26 Sep 2020 17:44:50 -0600</lastBuildDate>
+    <lastBuildDate>Sat, 17 Oct 2020 23:05:59 -0600</lastBuildDate>
     
         <atom:link href="/posts/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>HTB Blunder</title>
+      <link>/posts/blunder_writeup/</link>
+      <pubDate>Sat, 17 Oct 2020 23:05:59 -0600</pubDate>
+      
+      <guid>/posts/blunder_writeup/</guid>
+      <description>Blunder is a box that starts with a Bludit based blog being used to store random facts and a Sudoers file was configured with the intent to prevent us from running bash as root. It was less than sucessful.
+Scanning and Enumeration We start off with a basic nmap scan.
+sudo nmap -sV -sC 10.10.10.191 Starting Nmap 7.80 ( https://nmap.org ) at 2020-06-21 08:44 MDT Nmap scan report for 10.10.10.191 Host is up (0.</description>
+      
+    </item>
     
     <item>
       <title>HTB Admirer</title>
