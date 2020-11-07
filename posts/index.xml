@@ -67,5 +67,17 @@ Welcome to pwnyOS!!pwnyOS is a custom x86 operating system that supports link-t
       
     </item>
     
+    <item>
+      <title>HTB Tabby</title>
+      <link>/posts/tabby_writeup/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/tabby_writeup/</guid>
+      <description>Tabby Tabby has a Tomcat server that doesn&amp;rsquo;t seem to have vulnerability we can exploit. But we chaining an LFI allows us to make use of it. Containers also prove to be useful for more than what they were intended for.
+Scanning and enumeration We start off, as always, with an NMAP scan to get an idea of what we are working with.
+nightwolf@kali:~/CTFs/HTB/Tabby$ nmap -sV -sC 10.10.10.194 Starting Nmap 7.</description>
+      
+    </item>
+    
   </channel>
 </rss>

