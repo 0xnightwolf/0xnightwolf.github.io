@@ -6,10 +6,21 @@
     <description>Recent content in Htb-writeups on The Wolf Den</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 17 Oct 2020 23:05:59 -0600</lastBuildDate>
+    <lastBuildDate>Mon, 23 Nov 2020 00:00:00 +0000</lastBuildDate>
     
         <atom:link href="/htb-writeups/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>HTB Buff</title>
+      <link>/htb-writeups/buff_writeup/</link>
+      <pubDate>Mon, 23 Nov 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/htb-writeups/buff_writeup/</guid>
+      <description>Buff Buff is a windows box that features the website for a Gym Membership software and a simple Window stack based buffer overflow.
+Scanning and Enumeration First thing to note about this box is it seems to have some odd things port wise. Example of that below. The only port that should be open is 8080. There isn&amp;rsquo;t anything to do with the other ports and we aren&amp;rsquo;t sure why it shows up consistently.</description>
+      
+    </item>
     
     <item>
       <title>HTB Blunder</title>
@@ -41,9 +52,9 @@ Nmap scan report for 10.10.10.187Host is up (0.12s latency).Not shown: 997 clo
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>/htb-writeups/tabby_writeup/</guid>
-      <description>Tabby Tabby has a Tomcat server that doesn&amp;rsquo;t seem to have vulnerability we can exploit. But we chaining an LFI allows us to make use of it. Containers also prove to be useful for more than what they were intended for.
+      <description>Tabby has a Tomcat server that doesn&amp;rsquo;t seem to have vulnerability we can exploit. But we chaining an LFI allows us to make use of it. Containers also prove to be useful for more than what they were intended for.
 Scanning and enumeration We start off, as always, with an NMAP scan to get an idea of what we are working with.
-nightwolf@kali:~/CTFs/HTB/Tabby$ nmap -sV -sC 10.10.10.194 Starting Nmap 7.</description>
+nightwolf@kali:~/CTFs/HTB/Tabby$ nmap -sV -sC 10.10.10.194 Starting Nmap 7.80 ( https://nmap.</description>
       
     </item>
     

