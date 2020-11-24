@@ -13,10 +13,10 @@
     
     <item>
       <title>HTB Buff</title>
-      <link>/htb-writeups/buff_writeup/</link>
+      <link>/htb-writeups/buff-writeup/</link>
       <pubDate>Mon, 23 Nov 2020 00:00:00 +0000</pubDate>
       
-      <guid>/htb-writeups/buff_writeup/</guid>
+      <guid>/htb-writeups/buff-writeup/</guid>
       <description>Buff Buff is a windows box that features the website for a Gym Membership software and a simple Window stack based buffer overflow.
 Scanning and Enumeration First thing to note about this box is it seems to have some odd things port wise. Example of that below. The only port that should be open is 8080. There isn&amp;rsquo;t anything to do with the other ports and we aren&amp;rsquo;t sure why it shows up consistently.</description>
       
@@ -24,10 +24,10 @@ Scanning and Enumeration First thing to note about this box is it seems to have 
     
     <item>
       <title>HTB Blunder</title>
-      <link>/htb-writeups/blunder_writeup/</link>
+      <link>/htb-writeups/blunder-writeup/</link>
       <pubDate>Sat, 17 Oct 2020 23:05:59 -0600</pubDate>
       
-      <guid>/htb-writeups/blunder_writeup/</guid>
+      <guid>/htb-writeups/blunder-writeup/</guid>
       <description>Blunder is a box that starts with a Bludit based blog being used to store random facts and a Sudoers file was configured with the intent to prevent us from running bash as root. It was less than sucessful.
 Scanning and Enumeration We start off with a basic nmap scan.
 sudo nmap -sV -sC 10.10.10.191 Starting Nmap 7.80 ( https://nmap.org ) at 2020-06-21 08:44 MDT Nmap scan report for 10.10.10.191 Host is up (0.</description>
@@ -36,10 +36,10 @@ sudo nmap -sV -sC 10.10.10.191 Starting Nmap 7.80 ( https://nmap.org ) at 2020-0
     
     <item>
       <title>HTB Admirer</title>
-      <link>/htb-writeups/admirer_writeup/</link>
+      <link>/htb-writeups/admirer-writeup/</link>
       <pubDate>Sat, 26 Sep 2020 17:44:50 -0600</pubDate>
       
-      <guid>/htb-writeups/admirer_writeup/</guid>
+      <guid>/htb-writeups/admirer-writeup/</guid>
       <description>Admirer Admirer is a Linux box that features a vulnerable database setup and leveraging a maliciously crafted python library to achieve root.
 Enumeration We start off, as always, with an NMAP Scan.
 Nmap scan report for 10.10.10.187Host is up (0.12s latency).Not shown: 997 closed portsPORT STATE SERVICE VERSION21/tcp open ftp vsftpd 3.0.322/tcp open ssh OpenSSH 7.4p1 Debian 10+deb9u7 (protocol 2.0)| ssh-hostkey:| 2048 4a:71:e9:21:63:69:9d:cb:dd:84:02:1a:23:97:e1:b9 (RSA)| 256 c5:95:b6:21:4d:46:a4:25:55:7a:87:3e:19:a8:e7:02 (ECDSA)|_ 256 d0:2d:dd:d0:5c:42:f8:7b:31:5a:be:57:c4:a9:a7:56 (ED25519)80/tcp open http Apache httpd 2.</description>
@@ -48,13 +48,13 @@ Nmap scan report for 10.10.10.187Host is up (0.12s latency).Not shown: 997 clo
     
     <item>
       <title>HTB Tabby</title>
-      <link>/htb-writeups/tabby_writeup/</link>
+      <link>/htb-writeups/tabby-writeup/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>/htb-writeups/tabby_writeup/</guid>
-      <description>Tabby has a Tomcat server that doesn&amp;rsquo;t seem to have vulnerability we can exploit. But we chaining an LFI allows us to make use of it. Containers also prove to be useful for more than what they were intended for.
+      <guid>/htb-writeups/tabby-writeup/</guid>
+      <description>Tabby Tabby has a Tomcat server that doesn&amp;rsquo;t seem to have vulnerability we can exploit. But we chaining an LFI allows us to make use of it. Containers also prove to be useful for more than what they were intended for.
 Scanning and enumeration We start off, as always, with an NMAP scan to get an idea of what we are working with.
-nightwolf@kali:~/CTFs/HTB/Tabby$ nmap -sV -sC 10.10.10.194 Starting Nmap 7.80 ( https://nmap.</description>
+nightwolf@kali:~/CTFs/HTB/Tabby$ nmap -sV -sC 10.10.10.194 Starting Nmap 7.</description>
       
     </item>
     

