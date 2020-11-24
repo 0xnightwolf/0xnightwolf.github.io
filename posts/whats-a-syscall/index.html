@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.74.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>UIUCTF Whats_A_Syscall&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.ab321a2ad61315bebb72e6e3fa1108c4e8ffe4eada5cf5f20131d183a523496246d761df8fc832549be5b9dd47c40509.css" integrity="sha384-qzIaKtYTFb67cubj&#43;hEIxOj/5OraXPXyATHRg6UjSWJG12Hfj8gyVJvlud1HxAUJ"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="UIUCTF Whats_A_Syscall" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><span class="site name">The Wolf Den</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/ctf-writeups">CTF Writeups</a><a class="nav item" href="/htb-writeups">HTB Writeups</a><a class="nav item" href="/about">About</a></nav></div></span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">UIUCTF Whats_A_Syscall</h1><p class="article date">2020-07-20</p></section><article class="article markdown-body"><h1 id="whats_a_syscall">Whats_A_Syscall?</h1>
+<p>Challenge Description</p>
+<pre><code>Syscall 14 is known as &quot;SANDBOX_SPECIAL&quot;... I wonder if that would be useful here.
+
+You'll be stuck in a never ending loop of binexec until you perform syscall 14.
+
+To learn about syscalls and how they work in pwnyOS, check out the documentation!
+
+System Calls in pwnyOS: https://github.com/sigpwny/pwnyOS-2020-docs/blob/master/Syscalls.pdf
+
+Author: ravi
+</code></pre><h2 id="solution">Solution</h2>
+<p>We start out with a welcome screen and are told that we are in a sandbox.</p>
+<p><img  src="/img/Sandbox.png"
+        alt/></p>
+<p>We are further told that we can write shell code in hex and then run it by typing the word <code>done</code> and hitting enter.</p>
+<p>Before we get too deep into this challenge lets go over some concepts that will make our life immensely easier, syscalls and shellcode.</p>
+<p><strong>SysCalls</strong></p>
+<blockquote>
+<p>SysCalls are a way for users process to make a request of the kernel. They are typically made by user process. Most modern operating systems have far more than the 16 in pwnyOS but the concept is the same.</p>
+</blockquote>
+<p><strong>Shellcode</strong></p>
+<blockquote>
+<p>Shellcode, is often thought of as code that is used to launch a shell. It is typically written in machine code which is a programming language that directly controls the CPU.</p>
+</blockquote>
+<p>Now that we have some definitions we can understand that our goal is to write some code that executes a specific piece of code. By doing this we should be able to retrieve the flag.</p>
+<p>We start by checking out the documentation and quickly identify &ldquo;syscall 14&rdquo; the <code>SANDBOX_SPECIAL</code>
+<a href="https://github.com/sigpwny/pwnyOS-2020-docs/blob/master/Syscalls.pdf">https://github.com/sigpwny/pwnyOS-2020-docs/blob/master/Syscalls.pdf</a></p>
+<p>Now you may say that you don&rsquo;t know assembly let alone machine language. Fortunately, for us we have an example that was helpfully included in the documentation. We can also see that this is i386 bytecode.</p>
+<p><a href="https://github.com/sigpwny/pwnyOS-2020-docs/blob/master/Getting_Started.pdf">https://github.com/sigpwny/pwnyOS-2020-docs/blob/master/Getting_Started.pdf</a></p>
+<p><img  src="/img/ExampleBinExec.png"
+        alt/></p>
+<p><del>Unfortunately, it is written in AT&amp;T syntax.</del></p>
+<ul>
+<li>First, we move the address we are running our code from into <code>eax</code></li>
+<li>Second, we move <code>14</code> (the value of the SANDBOX_SPECIAL syscall) into <code>eax</code></li>
+<li>Third, we call interrupt with 0x80, which tells the system we want to execute a syscall.</li>
+<li>Finally, we call ret.</li>
+</ul>
+<pre><code>movl $0x0804c0a0, %eax
+movl $14, %eax
+int $0x80
+ret
+</code></pre><p>Cool. Now that we can visualize this in the assembly. We can do a few different things. We can try to compile but I had some challenges getting it to work. I was able to use both the example assembly, shellcode, and very handy discord bot called &ldquo;REBot&rdquo; to work out the shellcode needed line by line.</p>
+<pre><code>b2 a0 c0 04 08 8d 1d 15 00 00 00 01 d8 b8 0e 00 00 00 cd 80 c3
+</code></pre><p><img  src="/img/SysCall.png"
+        alt/></p>
+<p>We grab the flag, hit enter, and are dropped into a &ldquo;Rash&rdquo; shell. Ready to tackle the next challenge.</p>
+<p><img  src="/img/RashShell.png"
+        alt="RashShell"/></p>
+</article></div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/kernel-aslr/"><span class="iconfont icon-article"></span>UIUCTF Kernel_Memory_Leak</a></p><p><a class="link" href="/posts/time-to-start/"><span class="iconfont icon-article"></span>UIUCTF Time_To_Start</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">The Wolf Den</p>
+    <p class="powerby"><span>Powered&nbsp;by&nbsp;</span><a href="https://gohugo.io" 
+        target="_blank">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank">Notepadium</a></p></div></section></body>
+
+</html>
