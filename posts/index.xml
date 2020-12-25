@@ -79,6 +79,18 @@ Welcome to pwnyOS!!pwnyOS is a custom x86 operating system that supports link-t
     </item>
     
     <item>
+      <title></title>
+      <link>/posts/openkeys_writeup/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/openkeys_writeup/</guid>
+      <description>OpenKeyS OpenKeyS is an OpenBSD box that features CVE 2019-19521 as an vulnerability that allows you to gain access to user and ultimately root.
+Enumeration We start off with an nmap scan we can see that there are two open ports. 22 for SSH and 80 for OpenBSD httpd.
+Nmap scan report for 10.10.10.199 Host is up (0.079s latency). Not shown: 998 closed ports PORT STATE SERVICE VERSION 22/tcp open ssh OpenSSH 8.</description>
+      
+    </item>
+    
+    <item>
       <title>HTB Tabby</title>
       <link>/posts/tabby-writeup/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
