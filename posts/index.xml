@@ -6,10 +6,22 @@
     <description>Recent content in Posts on The Wolf Den</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 23 Nov 2020 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 25 Dec 2020 00:00:00 +0000</lastBuildDate>
     
         <atom:link href="/posts/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>HTB OpenKeyS</title>
+      <link>/posts/openkeys-writeup/</link>
+      <pubDate>Fri, 25 Dec 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/openkeys-writeup/</guid>
+      <description>OpenKeyS OpenKeyS is an OpenBSD box that features CVE 2019-19521 as an vulnerability that allows you to gain access to user and ultimately root.
+Enumeration We start off with an NMAP scan we can see that there are two open ports. 22 for SSH and 80 for OpenBSD httpd.
+Nmap scan report for 10.10.10.199 Host is up (0.079s latency). Not shown: 998 closed ports PORT STATE SERVICE VERSION 22/tcp open ssh OpenSSH 8.</description>
+      
+    </item>
     
     <item>
       <title>HTB Buff</title>
@@ -75,18 +87,6 @@ Syscall 14 is known as &amp;quot;SANDBOX_SPECIAL&amp;quot;... I wonder if that w
       <guid>/posts/time-to-start/</guid>
       <description>Time_To_Start Challenge Description
 Welcome to pwnyOS!!pwnyOS is a custom x86 operating system that supports link-time kASLR, multitasking and kernel threads, execution of genuine ELF files, a realtime high resolution graphics engine, and a custom hierarchical file system. This OS was written from the ground up with its use as a challenge for UIUCTF 2020 in mind. All source code in the OS is 100% custom handwritten C and assembly- there are no libraries used, and none of its code can be found anywhere online.</description>
-      
-    </item>
-    
-    <item>
-      <title></title>
-      <link>/posts/openkeys_writeup/</link>
-      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
-      <guid>/posts/openkeys_writeup/</guid>
-      <description>OpenKeyS OpenKeyS is an OpenBSD box that features CVE 2019-19521 as an vulnerability that allows you to gain access to user and ultimately root.
-Enumeration We start off with an nmap scan we can see that there are two open ports. 22 for SSH and 80 for OpenBSD httpd.
-Nmap scan report for 10.10.10.199 Host is up (0.079s latency). Not shown: 998 closed ports PORT STATE SERVICE VERSION 22/tcp open ssh OpenSSH 8.</description>
       
     </item>
     

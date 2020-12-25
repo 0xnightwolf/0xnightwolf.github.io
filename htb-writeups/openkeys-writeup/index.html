@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.74.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>HTB OpenKeyS&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.ab321a2ad61315bebb72e6e3fa1108c4e8ffe4eada5cf5f20131d183a523496246d761df8fc832549be5b9dd47c40509.css" integrity="sha384-qzIaKtYTFb67cubj&#43;hEIxOj/5OraXPXyATHRg6UjSWJG12Hfj8gyVJvlud1HxAUJ"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="HTB OpenKeyS" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><span class="site name">The Wolf Den</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/ctf-writeups">CTF Writeups</a><a class="nav item" href="/htb-writeups">HTB Writeups</a><a class="nav item" href="/about">About</a></nav></div></span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">HTB OpenKeyS</h1><p class="article date">2020-12-25</p></section><article class="article markdown-body"><h1 id="openkeys">OpenKeyS</h1>
+<p><img  src="/img/OpenKeyS_Logo.png"
+        alt/></p>
+<p>OpenKeyS is an OpenBSD box that features CVE 2019-19521 as an vulnerability that allows you to gain access to user and ultimately root.</p>
+<h2 id="enumeration">Enumeration</h2>
+<p>We start off with an NMAP scan  we can see that there are two open ports. 22 for SSH and 80 for OpenBSD httpd.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">Nmap scan report <span style="color:#66d9ef">for</span> 10.10.10.199
+Host is up <span style="color:#f92672">(</span>0.079s latency<span style="color:#f92672">)</span>.
+Not shown: <span style="color:#ae81ff">998</span> closed ports
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.1 <span style="color:#f92672">(</span>protocol 2.0<span style="color:#f92672">)</span>
+| ssh-hostkey:
+|   <span style="color:#ae81ff">3072</span> 5e:ff:81:e9:1f:9b:f8:9a:25:df:5d:82:1a:dd:7a:81 <span style="color:#f92672">(</span>RSA<span style="color:#f92672">)</span>
+|   <span style="color:#ae81ff">256</span> 64:7a:5a:52:85:c5:6d:d5:4a:6b:a7:1a:9a:8a:b9:bb <span style="color:#f92672">(</span>ECDSA<span style="color:#f92672">)</span>
+|_  <span style="color:#ae81ff">256</span> 12:35:4b:6e:23:09:dc:ea:00:8c:72:20:c7:50:32:f3 <span style="color:#f92672">(</span>ED25519<span style="color:#f92672">)</span>
+80/tcp open  http    OpenBSD httpd
+|_http-title: Site doesn<span style="color:#960050;background-color:#1e0010">&#39;</span>t have a title <span style="color:#f92672">(</span>text/html<span style="color:#f92672">)</span>.
+</code></pre></div><p>We decided to take a look at the web server first since we don&rsquo;t have credentials and bruteforcing especially blind isn&rsquo;t usually the path on HTB.</p>
+<p>We open port 80 in a web browser and find  by logging we will apparently be given ssh keys. That is very convenient.</p>
+<p><img  src="/img/OpenKeyS_WebLogin.png"
+        alt/></p>
+<p>However we don&rsquo;t have credentials and as mentioned before, it is unlikely that we would need to bruteforce this. There is likely something else we can leverage.</p>
+<p>We fire up ffuf and find a number of directories.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">
+        /<span style="color:#e6db74">&#39;___\  /&#39;</span>___<span style="color:#ae81ff">\ </span>          /<span style="color:#960050;background-color:#1e0010">&#39;</span>___<span style="color:#ae81ff">\ </span>      
+       /<span style="color:#ae81ff">\ \_</span>_/ /<span style="color:#ae81ff">\ \_</span>_/  __  __  /<span style="color:#ae81ff">\ \_</span>_/       
+       <span style="color:#ae81ff">\ \ </span>,__<span style="color:#ae81ff">\\</span> <span style="color:#ae81ff">\ </span>,__<span style="color:#ae81ff">\/\ \/\ \ \ \ </span>,__<span style="color:#ae81ff">\ </span>     
+        <span style="color:#ae81ff">\ \ \_</span>/ <span style="color:#ae81ff">\ \ \_</span>/<span style="color:#ae81ff">\ \ \_\ \ \ \ \_</span>/      
+         <span style="color:#ae81ff">\ \_\ </span>  <span style="color:#ae81ff">\ \_\ </span> <span style="color:#ae81ff">\ \_</span>___/  <span style="color:#ae81ff">\ \_\ </span>      
+          <span style="color:#ae81ff">\/</span>_/    <span style="color:#ae81ff">\/</span>_/   <span style="color:#ae81ff">\/</span>___/    <span style="color:#ae81ff">\/</span>_/       
+
+       v1.0.2
+________________________________________________
+
+ :: Method           : GET
+ :: URL              : http://10.10.10.199/FUZZ/
+ :: Follow redirects : false
+ :: Calibration      : false
+ :: Timeout          : <span style="color:#ae81ff">10</span>
+ :: Threads          : <span style="color:#ae81ff">40</span>
+ :: Matcher          : Response status: 200,204,301,302,307,401,403
+________________________________________________
+
+images                  <span style="color:#f92672">[</span>Status: 200, Size: 589, Words: 160, Lines: 22<span style="color:#f92672">]</span>
+css                     <span style="color:#f92672">[</span>Status: 200, Size: 697, Words: 215, Lines: 23<span style="color:#f92672">]</span>
+includes                <span style="color:#f92672">[</span>Status: 200, Size: 711, Words: 211, Lines: 23<span style="color:#f92672">]</span>
+js                      <span style="color:#f92672">[</span>Status: 200, Size: 582, Words: 156, Lines: 22<span style="color:#f92672">]</span>
+vendor                  <span style="color:#f92672">[</span>Status: 200, Size: 1522, Words: 635, Lines: 30<span style="color:#f92672">]</span>
+fonts                   <span style="color:#f92672">[</span>Status: 200, Size: 1066, Words: 385, Lines: 26<span style="color:#f92672">]</span>
+                        <span style="color:#f92672">[</span>Status: 200, Size: 96, Words: 13, Lines: 7<span style="color:#f92672">]</span>
+</code></pre></div><p>At this point, I got stuck for longer than I care to admit. I felt like the next step had to be right in front of my face about to bite my noes off and I was right.</p>
+<p>Eventually I checked out <code>/includes</code> We instantly found some lovely files. <code>auth.php</code> which we is blank if we attempt to read and <code>auth.php.swp</code> Which is not.</p>
+<p><code>http://10.10.10.199/includes/auth.php.swp</code></p>
+<pre><code>b0VIM 8.1�-�^���jenniferopenkeys.htb/var/www/htdocs/includes/auth.php 3210#&quot;! Utp=ad� � =����sWB@?&quot; �������mgC� � � { a W J @ �������vpnmUS0���J� � � � � � � � � � � ?&gt;} session_start(); session_destroy(); session_unset();{function close_session()} $_SESSION[&quot;username&quot;] = $_REQUEST['username']; $_SESSION[&quot;user_agent&quot;] = $_SERVER['HTTP_USER_AGENT']; $_SESSION[&quot;remote_addr&quot;] = $_SERVER['REMOTE_ADDR']; $_SESSION[&quot;last_activity&quot;] = $_SERVER['REQUEST_TIME']; $_SESSION[&quot;login_time&quot;] = $_SERVER['REQUEST_TIME']; $_SESSION[&quot;logged_in&quot;] = True;{function init_session()} } return False; { else } } return True; $_SESSION['last_activity'] = $time; // Session is active, update last activity time and return True { else } return False; close_session(); { ($time - $_SESSION['last_activity']) &gt; $session_timeout) if (isset($_SESSION['last_activity']) &amp;&amp; $time = $_SERVER['REQUEST_TIME']; // Has the session expired? { if(isset($_SESSION[&quot;logged_in&quot;])) // Is the user logged in? session_start(); // Start the session $session_timeout = 300; // Session timeout in seconds{function is_active_session()} return $retcode; system($cmd, $retcode); $cmd = escapeshellcmd(&quot;../auth_helpers/check_auth &quot; . $username . &quot; &quot; . $password);{function authenticate($username, $password)
+</code></pre><p>As you can see it isn&rsquo;t very friendly to read but we do find some very useful info. We now have a username, <code>jennifer</code>. There is also a reverence to another file, <code>../auth_helpers/check_auth</code> Point our browser at that page and we receive an elf exactable. Based of <code>/includes/auth.php.swp</code> it would see to be used to check the authentication for users logging in on the web page.</p>
+<p>This is where we find a rabbit hole. We can spend a ton of time reverseing this binary but it isn&rsquo;t going to gain us much. What we need can be found with a simple strings.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">/usr/libexec/ld.so                                            
+OpenBSD                                                      
+libc.so.95.1                                                      
+_csu_finish                                                       
+exit                                                    
+_Jv_RegisterClasses                                                             
+atexit                                                         
+auth_userokay                                                           
+_end                                                       
+AWAVAUATSH                                                            
+t-E1                                                         
+t7E1                                                        
+ASAWAVAT                                                        
+A<span style="color:#ae81ff">\A</span>^A_A<span style="color:#f92672">[]</span>                                                    
+ASAWAVP                                                       
+A^A_A<span style="color:#f92672">[]</span>L3                                                   
+Linker: LLD 8.0.1                                          
+.interp                                                   
+.note.openbsd.ident                                                  
+.dynsym                                                     
+.gnu.hash                                                   
+.hash                                                        
+.dynstr                                                    
+.rela.dyn                                                      
+.rela.plt                                                   
+.eh_frame_hdr
+.eh_frame
+...
+</code></pre></div><p>Right at the top we find a reference to a specific version of libc. If we google along the lines of <code>libc.so.95.1 exploit</code> we find reference to CVE 2019-19521. An extremely crazy bug for openbsd that allows for authentication <strong>bypass</strong>. That sounds pretty useful doesn&rsquo;t it?</p>
+<p><a href="https://n3x0.com/2019/12/05/severe-auth-bypass-and-priv-esc-vulnerabilities-disclosed-in-openbsd/">https://n3x0.com/2019/12/05/severe-auth-bypass-and-priv-esc-vulnerabilities-disclosed-in-openbsd/</a></p>
+<p>The above is a blog that discusses the vulnerability in more depth. Essentially, there is a flaw in how OpenBSD authentication works. When <code>-schallenge</code> is supplied for a username it is parsed as a command line option and further authentication is not requested.</p>
+<p>Remember how an elf binary is responsible for authentication the website? That is probably vulnerable. We give it a enter <code>-schallenge</code> and <code>passwd</code> (or whatever else you want for a password) and then attempt to login&hellip;</p>
+<p><img  src="/img/OpenKeyS_WebSchall.png"
+        alt/></p>
+<p>And we end up at <code>/sshkey.php</code>! Oh rats. There is no ssh key for user <code>-schallenge</code> :P</p>
+<p><img  src="/img/OpenKeyS_NoUser.png"
+        alt/></p>
+<h2 id="usertxt">User.txt</h2>
+<p>Fortunately for us there is more than one way to provide input to the web application. Checking back to <code>/includes/auth.php.swp</code> we find that there can be a username cookie set.</p>
+<p>So we attempt to login again this time modifying our request with burp to include <code>username=jennifer</code> in the cookie field</p>
+<p><img  src="OpenKeyS_CookieJen.png"
+        alt/></p>
+<p>We are then greeted with a beautiful sight, Jennifer&rsquo;s Private ssh key.</p>
+<p><img  src="/img/OpenKeyS_WebJen.png"
+        alt/></p>
+<p>We copy that over to a file on are machine. modify permissions so it will be accepted by ssh. <code>chmod 600 jen_key</code> and then attempt to ssh into the machine. Our key is accepted and we land in Jennifer&rsquo;s home directory right next to the user flag.</p>
+<h2 id="root">Root</h2>
+<p>The fun part is that the <strong>same</strong> vulnerability that allowed us to login will also allow us to privilege escalate to root. We can&rsquo;t just use <code>su</code> though it is vulnerable it causes a segfault so no dice.</p>
+<p><img  src="/img/OpenKeyS_SegFault.png"
+        alt/></p>
+<p>Worth a shot though right?</p>
+<p>This article goes through some more specific examples of the vulnerability.
+<a href="https://www.openwall.com/lists/oss-security/2019/12/04/5">https://www.openwall.com/lists/oss-security/2019/12/04/5</a>  One of which is a privilege escalation. I attempted to pull it of manually following the article but wasn&rsquo;t sucessful. I was instead able to find a script on github that was based on the code and this one worked</p>
+<p><a href="https://github.com/bcoles/local-exploits/blob/master/CVE-2019-19520/openbsd-authroot">https://github.com/bcoles/local-exploits/blob/master/CVE-2019-19520/openbsd-authroot</a></p>
+<p>It take two steps. First we leverage xlock, a binary that locks the local display until a password is entered, to join the auth user group. From there the exploit creates and Skey which is used for onetime authentication. The way this interacts with su is different. Su can then be run using the skey for authentication and it does not call a segfault.</p>
+<p><img  src="/img/OpenKeyS_AuthScript.png"
+        alt/></p>
+<p>Change directory to root, snag the flag and we are done with this machine!</p>
+<h2 id="wrap-up">Wrap Up</h2>
+<p>This was a very fun box thanks to polarbearer &amp; GibParadox for creating it. Also thanks to Pop_eax &amp; Szymex73 for nudging me when I was blind.</p>
+</article></div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/htb-writeups/buff-writeup/"><span class="iconfont icon-article"></span>HTB Buff</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">The Wolf Den</p>
+    <p class="powerby"><span>Powered&nbsp;by&nbsp;</span><a href="https://gohugo.io" 
+        target="_blank">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank">Notepadium</a></p></div></section></body>
+
+</html>
