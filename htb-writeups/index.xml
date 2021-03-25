@@ -6,10 +6,22 @@
     <description>Recent content in Htb-writeups on The Wolf Den</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 04 Mar 2021 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Wed, 24 Mar 2021 00:00:00 +0000</lastBuildDate>
     
         <atom:link href="/htb-writeups/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>HTB Passage</title>
+      <link>/htb-writeups/passage-writeup/</link>
+      <pubDate>Wed, 24 Mar 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/htb-writeups/passage-writeup/</guid>
+      <description>Intro Passage is a Ubuntu box. It had a few privesc and a few tricks up it&amp;rsquo;s sleeve to prevent what you might typically do for initial enumeration.
+Enumeration A standard nmap scan shows that ssh is running on port 22 and an Apache web server is running on port 80.
+sudo nmap -sV -sC -Pn -oA Passage 10.10.10.206 Starting Nmap 7.80 ( https://nmap.org ) at 2020-09-19 17:14 MDT Nmap scan report for 10.</description>
+      
+    </item>
     
     <item>
       <title>HTB Doctor</title>

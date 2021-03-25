@@ -6,7 +6,7 @@
     <description>Recent content on The Wolf Den</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 04 Mar 2021 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Wed, 24 Mar 2021 00:00:00 +0000</lastBuildDate>
     
         <atom:link href="/index.xml" rel="self" type="application/rss+xml" />
     
@@ -14,7 +14,7 @@
     <item>
       <title>Htb-writeups</title>
       <link>/htb-writeups/</link>
-      <pubDate>Thu, 04 Mar 2021 00:00:00 +0000</pubDate>
+      <pubDate>Wed, 24 Mar 2021 00:00:00 +0000</pubDate>
       
       <guid>/htb-writeups/</guid>
       <description></description>
@@ -24,7 +24,7 @@
     <item>
       <title>Posts</title>
       <link>/posts/</link>
-      <pubDate>Thu, 04 Mar 2021 00:00:00 +0000</pubDate>
+      <pubDate>Wed, 24 Mar 2021 00:00:00 +0000</pubDate>
       
       <guid>/posts/</guid>
       <description></description>
