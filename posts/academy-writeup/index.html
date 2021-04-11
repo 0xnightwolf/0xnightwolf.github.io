@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.82.0" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>HTB Academy&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.db24d509394517ab20314e5a7b60f6c8ba9c33c7a31ba90272138bb555f028f51c9ca63d868beb0b7f43864537ce1920.css" integrity="sha384-2yTVCTlFF6sgMU5ae2D2yLqcM8ejG6kCchOLtVXwKPUcnKY9hovrC39DhkU3zhkg"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="HTB Academy" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/img/NightWolf.jpg" alt /><span class="site name">The Wolf Den</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/ctf-writeups">CTF Writeups</a><a class="nav item" href="/htb-writeups">HTB Writeups</a><a class="nav item" href="/about">About</a></nav></div></span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">HTB Academy</h1><p class="article date">2021-04-10</p></section><article class="article markdown-body"><p><img  src="/img/academy-logo.png"
+        alt/></p>
+<p>Academy is a Linux box that focuses a lot on enumeration and attention to detail for both foothold and privilege escalation, for root it has a simple GTFO bin and lastly it was a &ldquo;special box&rdquo; that served as a way for HTB to announce <a href="https://academy.hackthebox.eu/"target="_blank">academy.hackthebox.eu</a></p>
+<h2 id="enumeration">Enumeration</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># Nmap 7.80 scan initiated Sat Nov  7 20:48:08 2020 as: nmap -sC -sV -oA Academy 10.129.20.80</span>
+Nmap scan report <span style="color:#66d9ef">for</span> 10.129.20.80
+Host is up <span style="color:#f92672">(</span>0.093s latency<span style="color:#f92672">)</span>.
+Not shown: <span style="color:#ae81ff">998</span> closed ports
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.1 <span style="color:#f92672">(</span>Ubuntu Linux; protocol 2.0<span style="color:#f92672">)</span>
+80/tcp open  http    Apache httpd 2.4.41 <span style="color:#f92672">((</span>Ubuntu<span style="color:#f92672">))</span>
+|_http-server-header: Apache/2.4.41 <span style="color:#f92672">(</span>Ubuntu<span style="color:#f92672">)</span>
+|_http-title: Did not follow redirect to http://academy.htb/
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+<span style="color:#75715e"># Nmap done at Sat Nov  7 20:48:30 2020 -- 1 IP address (1 host up) scanned in 22.22 seconds</span>
+</code></pre></div><p>Nmap shows  there is both a SSH server and a HTTP server running. Adding <code>academy.htb</code> to our <code>/etc/hosts</code> file, it&rsquo;s possible to access the website running on port 80.</p>
+<p><img  src="/img/academy-mainpage.png"
+        alt/></p>
+<p>There are two other pages visible on the navigation bar, login and register. It is possible to create an account and use it to login. This leads to a pretty neat page hinting at some cool things to come for HTB, at the time this box was released.</p>
+<p><img  src="/img/academy-loggedin.png"
+        alt/></p>
+<p>This seems to be a dead end. The page is mostly static it does state that <code>egre55</code> is  the logged in user. That info could be useful later.</p>
+<p>Checking for a few other common pages, <code>/admin.php</code> is discovered. <code>egre55</code> could be a username here but the form still needs a password.</p>
+<h2 id="foothold">Foothold</h2>
+<p>Registering a new user from  <code>/register</code> page a intercepting the request with Burp Suite reveals additional info. In the registration POST request, there is also a <code>roleid</code> field that defaults to 0. If that request is intercepted and the <code>roleid</code> changed to 1 it creates an account with permission to login on <code>/admin.php</code>.</p>
+<p><img  src="/img/academy-burpregisteration.png"
+        alt/></p>
+<p>With a valid a nearly created admin login, it&rsquo;s now possible to access the admin page after login on <code>/admin.php</code></p>
+<p><img  src="/img/academy-admin-page-php.png"
+        alt/></p>
+<p>This shows a few more potential usernames, cry0lt3 and mrb3n, and also another subdomain, <code>dev-staging-01</code>. Add that to  <code>dev-staging-01.academy.htb</code> to an <code>/etc/hosts</code> file and it is easily accessible.</p>
+<p><img  src="/img/academy-dev-staging-01.png"
+        alt/></p>
+<p>This page shows error handling information. That information can be used to determine what more information about the site including the framework being used, Laravel. Laravel has a number of exploits including, a token deserialization vulnerability based in Metasploit.</p>
+<p><code>exploit/unix/http/laravel_token_unseralize_exec</code></p>
+<p>Option configuration is fairly standard though in this case the VHOST must be set to match the <code>dev-staging-01.academy.htb</code> so the exploit gets to the right place. The app key can be found on the the debug page found prior.</p>
+<pre><code>VHOST dev-staging-01.academy.htb
+
+APP_KEY dBLUaMuZz7Iq06XtL/Xnz/90Ejq+DEEynggqubHWFj0=
+</code></pre><p><img  src="/img/academy-metasploitopptions.png"
+        alt/></p>
+<p>Run the exploit and for RCE which can then be used to  send send a reverse shell back to a netcat listener as <code>www-data</code> that can then be upgraded to a full TTY.</p>
+<h2 id="user">User</h2>
+<p><code>www-data</code> doesn&rsquo;t seem to have much in the way of permissions but it can access web files and potentially find credneitals to allow an attacker to pivot to another user. The source code for the admin login page shows why a user can create a new user to login. It checks to make the username and password match a registered user and then check to make sure that user has a roleid of 1.</p>
+<p>Credentials are found for a local mysql database but login request are denied.</p>
+<p>Running a search with the Larvael API key found earlier,  A <code>.env</code> file  is found that contains a password that, while it doens&rsquo;t doesn&rsquo;t grant DB access but it does allow a pivot to <code>cry0l1t3</code>,using the su command.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">www-data@academy:/var/www/html/academy$ grep -rwnl . -e <span style="color:#e6db74">&#34;dBLUaMuZz7Iq06XtL/Xnz/90Ejq+DEEynggqubHWFj0=&#34;</span>
+./.env
+www-data@academy:/var/www/html/academy$ less ./.env
+
+...
+
+DB_CONNECTION<span style="color:#f92672">=</span>mysql
+DB_HOST<span style="color:#f92672">=</span>127.0.0.1
+DB_PORT<span style="color:#f92672">=</span><span style="color:#ae81ff">3306</span>
+DB_DATABASE<span style="color:#f92672">=</span>academy
+DB_USERNAME<span style="color:#f92672">=</span>dev
+DB_PASSWORD<span style="color:#f92672">=</span>mySup3rP4s5w0rd!!
+</code></pre></div><p><img  src="/img/academy-sucry0l1t3.png"
+        alt/></p>
+<p>User.txt is now accessible and the shell prompt can then be improved by running <code>/bin/bash</code>.</p>
+<h2 id="privilege-escalation">Privilege Escalation</h2>
+<p><code>cry0l1t3</code> doesn&rsquo;t have a quick win to root with sudo or any thing very useful in his home directory. However, he is part of the <code>adm</code> group, which will allow access to the logs stored in <code>/var/log</code></p>
+<p>The command line utility Grep</p>
+<p><code>username</code> or <code>password</code> can be good patterns to look for with  <code>grep -rwnl . -e &quot;&lt;pattern to search for&gt;&quot;</code> but neither finds anything useful here. Checks for <code>egre55</code> and <code>cry0l1t3c</code> also turn up empty.</p>
+<p>But one more user is known at this point,<code>mrb3n</code> Grepping for references to that username and find the highlighted line in <code>audit.log.3</code>. The string is hexdicimal data the when decoded reads <code>mrb3n_Ac@d3my!</code></p>
+<p><img  src="/img/academy-auditlog3.png"
+        alt/></p>
+<h2 id="root">Root</h2>
+<p>Now that <code>mrb3n</code>&rsquo;s password is known, it is trivial to us <code>su</code> to pivot to that user.  <code>sudo -l</code> returns that <code>mrb3n</code> can run <code>composer</code>, a known GTFO Bin, as root.</p>
+<p><a href="https://gtfobins.github.io/gtfobins/composer/">https://gtfobins.github.io/gtfobins/composer/</a></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">TF<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>mktemp -d<span style="color:#66d9ef">)</span>
+echo <span style="color:#e6db74">&#39;{&#34;scripts&#34;:{&#34;x&#34;:&#34;/bin/sh -i 0&lt;&amp;3 1&gt;&amp;3 2&gt;&amp;3&#34;}}&#39;</span> &gt;$TF/composer.json
+sudo composer --working-dir<span style="color:#f92672">=</span>$TF run-script x
+</code></pre></div><p><img  src="/img/academy-donotrunasroot.png"
+        alt/></p>
+<p>Composer does warn that it <em>should not</em> be run as root, but does nothing to stop the attempt the attempt to escalate privileges and a root prompt appears.</p>
+<h2 id="wrap-up">Wrap Up</h2>
+<p>There is an extra item of note in <code>/root</code></p>
+<p><img  src="/img/academy-academy.png"
+        alt/></p>
+<p>In case you hadn&rsquo;t learned about it by the time this is released HTB released a new &ldquo;Academy&rdquo; that features course on topics from JavaScript Deobfuscation to Powerview. Much of it is paid content but it is very high quality including exercises and labs and Tier0 courses are free. If you haven&rsquo;t checked it out yet I would highly encourage you do so especially if you are looking to get started on HTB but haven&rsquo;t yet. You can take a look for your self at <a href="https://academy.hackthebox.eu/"target="_blank">academy.hackthebox.eu</a></p>
+<p>Thanks to <a href="https://app.hackthebox.eu/users/1190"target="_blank">egre55</a> &amp; <a href="https://app.hackthebox.eu/users/2984"target="_blank">mrb3n</a> for creating an awesome box. There were some parts of it that took longer than I would have liked. Specifically finding creds via grepping felt somewhat the same for both privescs just in different locations.</p>
+<p>This also felt a bit like SwagShop but I liked how the theme of what was being launched was more clear throughout the box. It was a nice touch.</p>
+</article></div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/passage-writeup/"><span class="iconfont icon-article"></span>HTB Passage</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">The Wolf Den</p>
+    <p class="powerby"><span>Powered&nbsp;by&nbsp;</span><a href="https://gohugo.io" 
+        target="_blank">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank">Notepadium</a></p></div></section></body>
+
+</html>

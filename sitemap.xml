@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml"><url>
+    <loc>http://nightwolf56.github.io/htb-writeups/academy-writeup/</loc><lastmod>2021-04-10T00:44:50-06:00</lastmod></url><url>
+    <loc>http://nightwolf56.github.io/posts/academy-writeup/</loc><lastmod>2021-04-10T00:44:50-06:00</lastmod></url><url>
+    <loc>http://nightwolf56.github.io/htb-writeups/</loc><lastmod>2021-04-10T00:44:50-06:00</lastmod></url><url>
+    <loc>http://nightwolf56.github.io/posts/</loc><lastmod>2021-04-10T00:44:50-06:00</lastmod></url><url>
+    <loc>http://nightwolf56.github.io/</loc><lastmod>2021-04-10T00:44:50-06:00</lastmod></url><url>
     <loc>http://nightwolf56.github.io/htb-writeups/passage-writeup/</loc><lastmod>2021-03-24T00:00:00+00:00</lastmod></url><url>
     <loc>http://nightwolf56.github.io/posts/passage-writeup/</loc><lastmod>2021-03-24T00:00:00+00:00</lastmod></url><url>
-    <loc>http://nightwolf56.github.io/htb-writeups/</loc><lastmod>2021-03-24T00:00:00+00:00</lastmod></url><url>
-    <loc>http://nightwolf56.github.io/posts/</loc><lastmod>2021-03-24T00:00:00+00:00</lastmod></url><url>
-    <loc>http://nightwolf56.github.io/</loc><lastmod>2021-03-24T00:00:00+00:00</lastmod></url><url>
     <loc>http://nightwolf56.github.io/htb-writeups/doctor-writeup/</loc><lastmod>2021-03-04T00:00:00+00:00</lastmod></url><url>
     <loc>http://nightwolf56.github.io/posts/doctor-writeup/</loc><lastmod>2021-03-04T00:00:00+00:00</lastmod></url><url>
     <loc>http://nightwolf56.github.io/htb-writeups/omni-writeup/</loc><lastmod>2021-01-09T00:00:00+00:00</lastmod></url><url>
