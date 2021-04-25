@@ -6,10 +6,45 @@
     <description>Recent content in Ctf-writeups on The Wolf Den</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 20 Jul 2020 17:44:50 -0602</lastBuildDate>
+    <lastBuildDate>Sun, 25 Apr 2021 00:00:00 -0200</lastBuildDate>
     
         <atom:link href="/ctf-writeups/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Cyber Apocalypse 2021: Backdoor</title>
+      <link>/ctf-writeups/ca-backdoor/</link>
+      <pubDate>Sun, 25 Apr 2021 00:00:00 -0200</pubDate>
+      
+      <guid>/ctf-writeups/ca-backdoor/</guid>
+      <description>Note: I did not solve this challenge until after the CTF had officially ended.
+File shows that bd, is a stripped binary which can make reversing a bit harder.
+$ file bd bd: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 3.2.0, BuildID[sha1]=1da3a1d77c7109ce6444919f4a15e7e6c63d02fa, stripped Nothing relevant shows up in strings though it&amp;rsquo;s interesting to note the size of the binary.
+Once opened in Ghidra, an interesting section can be seen in the program tree.</description>
+      
+    </item>
+    
+    <item>
+      <title>Cyber Apocalypse 2021: Passphrase</title>
+      <link>/ctf-writeups/ca-passphrase/</link>
+      <pubDate>Sun, 25 Apr 2021 00:00:00 -0100</pubDate>
+      
+      <guid>/ctf-writeups/ca-passphrase/</guid>
+      <description>Passphrase is a ELF 64 bit executable. It is dynamically linked and is not stripped for debug symbols.
+$ file passphrase passphrase: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 3.2.0, BuildID[sha1]=60f6b6064d2e34a2b6a24dda9feb943b0b8c360f, not stripped Strings doens&amp;rsquo;t reveal a whole lot of info. The binary prompts for a &amp;ldquo;secret passphrase&amp;rdquo;. If it is correct, it asks that a message, presumably the flag, be taken to the chief.</description>
+      
+    </item>
+    
+    <item>
+      <title>Cyber Apocalypse 2021: Authenticator</title>
+      <link>/ctf-writeups/ca-authenticator/</link>
+      <pubDate>Sun, 25 Apr 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/ctf-writeups/ca-authenticator/</guid>
+      <description>Authenticator is a ELF 64 bit executable. It is dynamically linked and is not stripped for debug symbols
+$ file authenticator authenticator: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 3.2.0, BuildID[sha1]=66286657ca5a06147189b419238b2971b11c72db, not stripped Strings shows a lot of standard stuff and a few things that are likely directly related to this challenge. There are a couple of what seem to be dialog lines, mention of a flag and a rather strange sequence of, }a:Vh|}a:g}8j=}89gV&amp;lt;p&amp;lt;}:dV8&amp;lt;Vg9}V&amp;lt;9V&amp;lt;:j|{:.</description>
+      
+    </item>
     
     <item>
       <title>UIUCTF Kernel_Memory_Leak</title>

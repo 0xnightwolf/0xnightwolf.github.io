@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.82.0" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>Cyber Apocalypse 2021: Authenticator&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.db24d509394517ab20314e5a7b60f6c8ba9c33c7a31ba90272138bb555f028f51c9ca63d868beb0b7f43864537ce1920.css" integrity="sha384-2yTVCTlFF6sgMU5ae2D2yLqcM8ejG6kCchOLtVXwKPUcnKY9hovrC39DhkU3zhkg"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Cyber Apocalypse 2021: Authenticator" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/img/NightWolf.jpg" alt /><span class="site name">The Wolf Den</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/ctf-writeups">CTF Writeups</a><a class="nav item" href="/htb-writeups">HTB Writeups</a><a class="nav item" href="/about">About</a></nav></div></span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">Cyber Apocalypse 2021: Authenticator</h1><p class="article date">2021-04-25</p></section><article class="article markdown-body"><p>Authenticator is a ELF 64 bit executable. It is dynamically linked and is not stripped for debug symbols</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ file authenticator
+authenticator: ELF 64-bit LSB shared object, x86-64, version <span style="color:#ae81ff">1</span> <span style="color:#f92672">(</span>SYSV<span style="color:#f92672">)</span>, dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, <span style="color:#66d9ef">for</span> GNU/Linux 3.2.0, BuildID<span style="color:#f92672">[</span>sha1<span style="color:#f92672">]=</span>66286657ca5a06147189b419238b2971b11c72db, not stripped
+</code></pre></div><p>Strings shows a lot of standard stuff and a few things that are likely directly related to this challenge. There are a couple of what seem to be dialog lines, mention of a flag and a rather strange sequence of, <code>}a:Vh|}a:g}8j=}89gV&lt;p&lt;}:dV8&lt;Vg9}V&lt;9V&lt;:j|{:</code>.</p>
+<p>Since the file is not stripped, main is listed in Ghidra&rsquo;s symbol tree under functions.</p>
+<p>The program prompts for input of a username and a pin. If they are both correct, the then a success message is output. The username is show to be <code>11337</code> but the pin provided by the user is passed to another function and it&rsquo;s return value is evaluated.</p>
+<p><img  src="/img/ca-authenticator-main-light.png"
+        alt/></p>
+<pre><code>get username
+if username == 11337 {
+    get pin
+    chekpin(pin)
+    if pin == correct value {
+        Suceess
+    }
+    else {
+        Access denied
+    }
+}
+else {
+    Access denied
+}
+</code></pre><p>In the check pin function, the odd string we noticed earlier is XOR&rsquo;d with the key of <code>9U</code> and the value is compared with the pin provided by the user.</p>
+<p><img  src="/img/ca-authenticator-checkpin.png"
+        alt/></p>
+<p>XOR <code>}a:Vh|}a:g}8j=}89gV&lt;p&lt;}:dV8&lt;Vg9}V&lt;9V&lt;:j|{:</code> with <code>9U</code> and the result is the value of the flag once it is wrapped in the flag format CHTB{}.</p>
+</article></div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/ca-passphrase/"><span class="iconfont icon-article"></span>Cyber Apocalypse 2021: Passphrase</a></p><p><a class="link" href="/posts/bucket-writeup/"><span class="iconfont icon-article"></span>HTB Bucket</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">The Wolf Den</p>
+    <p class="powerby"><span>Powered&nbsp;by&nbsp;</span><a href="https://gohugo.io" 
+        target="_blank">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank">Notepadium</a></p></div></section></body>
+
+</html>
