@@ -6,17 +6,17 @@
     <description>Recent content on The Wolf Den</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 25 Apr 2021 00:00:00 -0200</lastBuildDate>
+    <lastBuildDate>Sat, 15 May 2021 00:00:00 -0600</lastBuildDate>
     
         <atom:link href="/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
-      <title>Ctf-writeups</title>
-      <link>/ctf-writeups/</link>
-      <pubDate>Sun, 25 Apr 2021 00:00:00 -0200</pubDate>
+      <title>Htb-writeups</title>
+      <link>/htb-writeups/</link>
+      <pubDate>Sat, 15 May 2021 00:00:00 -0600</pubDate>
       
-      <guid>/ctf-writeups/</guid>
+      <guid>/htb-writeups/</guid>
       <description></description>
       
     </item>
@@ -24,7 +24,7 @@
     <item>
       <title>Posts</title>
       <link>/posts/</link>
-      <pubDate>Sun, 25 Apr 2021 00:00:00 -0200</pubDate>
+      <pubDate>Sat, 15 May 2021 00:00:00 -0600</pubDate>
       
       <guid>/posts/</guid>
       <description></description>
@@ -32,11 +32,11 @@
     </item>
     
     <item>
-      <title>Htb-writeups</title>
-      <link>/htb-writeups/</link>
-      <pubDate>Sat, 24 Apr 2021 00:05:59 -0600</pubDate>
+      <title>Ctf-writeups</title>
+      <link>/ctf-writeups/</link>
+      <pubDate>Sun, 25 Apr 2021 00:00:00 -0200</pubDate>
       
-      <guid>/htb-writeups/</guid>
+      <guid>/ctf-writeups/</guid>
       <description></description>
       
     </item>

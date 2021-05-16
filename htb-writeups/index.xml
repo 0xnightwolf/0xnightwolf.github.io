@@ -6,10 +6,21 @@
     <description>Recent content in Htb-writeups on The Wolf Den</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 24 Apr 2021 00:05:59 -0600</lastBuildDate>
+    <lastBuildDate>Sat, 15 May 2021 00:00:00 -0600</lastBuildDate>
     
         <atom:link href="/htb-writeups/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>HTB Ready</title>
+      <link>/htb-writeups/ready-writeup.md/</link>
+      <pubDate>Sat, 15 May 2021 00:00:00 -0600</pubDate>
+      
+      <guid>/htb-writeups/ready-writeup.md/</guid>
+      <description>Ready is a GitLab instance were we exploit an SSRF in order to get code execution and find ourselves in a docker container. We find some credentials to escalate to root inside the container and then leverage the fact it was started with the &amp;ldquo;privileged&amp;rdquo; flag to escape the container.
+Enumeration Starting Nmap 7.91 ( https://nmap.org ) at 2021-01-27 00:15 UTC Nmap scan report for 10.129.90.66 Host is up (0.095s latency).</description>
+      
+    </item>
     
     <item>
       <title>HTB Bucket</title>

