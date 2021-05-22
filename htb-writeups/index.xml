@@ -6,10 +6,22 @@
     <description>Recent content in Htb-writeups on The Wolf Den</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 15 May 2021 00:00:00 -0600</lastBuildDate>
+    <lastBuildDate>Sat, 22 May 2021 00:00:00 +0000</lastBuildDate>
     
         <atom:link href="/htb-writeups/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>HTB Delivery</title>
+      <link>/htb-writeups/delivery-writeup.md/</link>
+      <pubDate>Sat, 22 May 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/htb-writeups/delivery-writeup.md/</guid>
+      <description>In Delivery, we will leverage missconfigurations in a ticketing system and internal communications channels to gain access to where we certainly shouldn&amp;rsquo;t be able to go. We will also see another example of where weak and reused passwords make our job easy.
+Enumeration Starting off with a standard NMAP scan and shows both a SSH server on port 22 and a web server on port 80.
+Starting Nmap 7.91 ( https://nmap.</description>
+      
+    </item>
     
     <item>
       <title>HTB Ready</title>
