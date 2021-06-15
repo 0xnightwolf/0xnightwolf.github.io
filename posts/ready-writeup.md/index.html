@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.83.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
-<meta name="supported-color-schemes" content="light dark"><title>HTB Ready&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.18c590792b52ec026068c0b889c0f13fac4882d13cdb8ad935c3a36b0036b3e3d725f8c8a0e7bbdcf0e6326fb80637f3.css" integrity="sha384-GMWQeStS7AJgaMC4icDxP6xIgtE824rZNcOjawA2s&#43;PXJfjIoOe73PDmMm&#43;4Bjfz"><meta name="twitter:card" content="summary" />
+<meta name="supported-color-schemes" content="light dark"><title>HTB Ready&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.8a20650921066633f421ce7a745e34cd4032f36a72cc46f51a06d1fe62549284c37e461fd23cd89b3f123ccdc212cd1b.css" integrity="sha384-iiBlCSEGZjP0Ic56dF40zUAy82pyzEb1GgbR/mJUkoTDfkYf0jzYmz8SPM3CEs0b"><meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="HTB Ready" /><body><section id="header">
     <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/img/NightWolf.jpg" alt /><span class="site name">The Wolf Den</span></a></span>
         <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/ctf-writeups">CTF Writeups</a><a class="nav item" href="/htb-writeups">HTB Writeups</a><a class="nav item" href="/about">About</a></nav></div></span></div></section><section id="content"><div class="article-container"><section class="article header">
@@ -38,7 +38,8 @@ Nmap <span style="color:#66d9ef">done</span>: <span style="color:#ae81ff">1</spa
 <p><img  src="/img/ready-gitlabhelppage.png"
         alt/></p>
 <p>It is possible to access a help page which, among other things, lists the current version, 11.4.7 and the notice to &ldquo;Update asap&rdquo;.</p>
-<p>Research on GitLab 11.4.7 there is a well know RCE through an Server Side Request Forgery, a type of vulnerability, where an an attacker can change a URL which the server will attempt to read or submit data too. In this case, it allows us to interact with an internal redis database service and start a malicious worker package.  This vulnerability was was featured in Real World CTF 2018 and LiveOverflow created a <a href="https://liveoverflow.com/gitlab-11-4-7-remote-code-execution-real-world-ctf-2018/"target="_blank">video and blog post</a> detailing it.</p>
+<p>Research on GitLab 11.4.7 there is a well know RCE through an Server Side Request Forgery, a type of vulnerability, where an an attacker can change a URL which the server will attempt to read or submit data too. In this case, it allows us to interact with an internal redis database service and start a malicious worker package.  This vulnerability was was featured in Real World CTF 2018 and LiveOverflow created a <a href="https://liveoverflow.com/gitlab-11-4-7-remote-code-execution-real-world-ctf-2018/"target="_blank" rel="noopener noreferrer">video and blog post</a>
+ detailing it.</p>
 <p>It is possible to follow along with the blog post to create a proof of concept allowing  <code>/etc/passwd</code> to be read.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"> multi
  sadd resque:gitlab:queues system_hook_push
@@ -99,10 +100,13 @@ git@gitlab:~/gitlab-rails/working$
         alt/></p>
 <p>This password is not valid for <code>dude</code> but does allow  <code>su</code> to <code>root</code> user inside the container. User.txt is also accessible.</p>
 <h2 id="root">Root</h2>
-<p>Docker is a platform that makes use of Linux namespaces to provide an isolated environment called a container. They can seem similar to virtual machines but are different on a technical level. If you want to read some more about that you can check out the <a href="https://docs.docker.com/get-started/overview/#the-underlying-technology"target="_blank">documentation</a></p>
+<p>Docker is a platform that makes use of Linux namespaces to provide an isolated environment called a container. They can seem similar to virtual machines but are different on a technical level. If you want to read some more about that you can check out the <a href="https://docs.docker.com/get-started/overview/#the-underlying-technology"target="_blank" rel="noopener noreferrer">documentation</a>
+</p>
 <p>The docker compose file found before showed the container was likely started with the <code>--privileged</code> flag, not something. The <code>--privileged</code> flag launches the container with extended privileges that can be abused.</p>
-<p>From the documentation, &ldquo;By default, Docker containers are “unprivileged” and cannot, for example, run a Docker daemon inside a Docker container. This is because by default a container is not allowed to access any devices, but a “privileged” container is given access to all devices (see the documentation on <a href="https://www.kernel.org/doc/Documentation/cgroup-v1/devices.txt"target="_blank">cgroups devices</a>).</p>
-<p>When the operator executes <code>docker run --privileged</code>, Docker will enable access to all devices on the host as well as set some configuration in AppArmor or SELinux to allow the container nearly all the same access to the host as processes running outside containers on the host. Additional information about running with <code>--privileged</code> is available on the <a href="http://blog.docker.com/2013/09/docker-can-now-run-within-docker/"target="_blank">Docker Blog</a>.&rdquo;</p>
+<p>From the documentation, &ldquo;By default, Docker containers are “unprivileged” and cannot, for example, run a Docker daemon inside a Docker container. This is because by default a container is not allowed to access any devices, but a “privileged” container is given access to all devices (see the documentation on <a href="https://www.kernel.org/doc/Documentation/cgroup-v1/devices.txt"target="_blank" rel="noopener noreferrer">cgroups devices</a>
+).</p>
+<p>When the operator executes <code>docker run --privileged</code>, Docker will enable access to all devices on the host as well as set some configuration in AppArmor or SELinux to allow the container nearly all the same access to the host as processes running outside containers on the host. Additional information about running with <code>--privileged</code> is available on the <a href="http://blog.docker.com/2013/09/docker-can-now-run-within-docker/"target="_blank" rel="noopener noreferrer">Docker Blog</a>
+.&rdquo;</p>
 <p>This is going to enable escape from the container and gain root on the host in two very simple commands. First make a directory and then simply mount sda2 in that directory.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">mkdir -p /mnt/hola
 mount /dev/sda2 /mnt/hola
@@ -115,12 +119,15 @@ mount /dev/sda2 /mnt/hola
 <p><img  src="/img/ready-indeedyoucan.png"
         alt/></p>
 <h2 id="wrap-up">Wrap up</h2>
-<p>Huge thanks to <a href="https://app.hackthebox.eu/users/27897"target="_blank">bertolis</a> for creating this machine.  I did see several comments talking about how it was very similar to another machine that was active at the time but it still felt unique to me, especially after foothold. A docker escape was also pretty fun and I&rsquo;d like to learn more advanced ways to do that in the future.</p>
-</article></div>
+<p>Huge thanks to <a href="https://app.hackthebox.eu/users/27897"target="_blank" rel="noopener noreferrer">bertolis</a>
+ for creating this machine.  I did see several comments talking about how it was very similar to another machine that was active at the time but it still felt unique to me, especially after foothold. A docker escape was also pretty fun and I&rsquo;d like to learn more advanced ways to do that in the future.</p>
+</article>
+</div>
 <div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/delivery-writeup.md/"><span class="iconfont icon-article"></span>HTB Delivery</a></p><p><a class="link" href="/posts/ca-backdoor/"><span class="iconfont icon-article"></span>Cyber Apocalypse 2021: Backdoor</a></p></section></div></section><section id="footer"><div class="footer-wrap">
     <p class="copyright">The Wolf Den</p>
     <p class="powerby"><span>Powered&nbsp;by&nbsp;</span><a href="https://gohugo.io" 
-        target="_blank">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
-        target="_blank">Notepadium</a></p></div></section></body>
+        target="_blank" rel="noopener noreferrer">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank" rel="noopener noreferrer">Notepadium</a></p></div>
+</section></body>
 
 </html>

