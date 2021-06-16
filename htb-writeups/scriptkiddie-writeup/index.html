@@ -30,7 +30,7 @@ Nmap <span style="color:#66d9ef">done</span>: <span style="color:#ae81ff">1</spa
         alt/></p>
 <p>The site is a page single page of various <em>h4ck3r t00l5</em>, NMAP, an msfvenom payload generator, and a search bar for Exploit DB. There doesn&rsquo;t seem to be a whole lot more on the web server. Payloads can be generated and have an upload feature but outside of that and viewing the output from Exploit DB and NMAP there isn&rsquo;t much on the site.</p>
 <h2 id="foothold">Foothold</h2>
-<p>It&rsquo;s worth fuzzing by trying various special characters in the input fields for the nmap and exploit-db, and msfvenom input fields to see if there is a way to break it and achieve code execution. This dosen&rsquo;t yield much and it seems there is some level of filtering in place.</p>
+<p>It&rsquo;s worth fuzzing by trying various special characters in the input fields for the nmap and exploit-db, and msfvenom input fields to see if there is a way to break it and achieve code execution. This doesn&rsquo;t yield much and it seems there is some level of filtering in place.</p>
 <p><img  src="/img/scriptkiddie-stophackingme.png"
         alt/></p>
 <p>However, there is another place to provide user input. The msfvenom upload. . Playing around with the parameters shows that the windows payload expects an EXE, Android expects an APK, and  Linux would like an ELF. However it doens&rsquo;t seem to work properly, returns that &ldquo;Something went wrong&rdquo;. Not super descriptive for trouble shooting.</p>
@@ -46,8 +46,8 @@ Nmap <span style="color:#66d9ef">done</span>: <span style="color:#ae81ff">1</spa
         alt/></p>
 <p>The call back is as the user <code>kid</code> and they have a private SSH key in <code>/home/kid/.ssh/id_rsa</code>That can be copied and pasted an attacker&rsquo;s machine, permissions changed, <code>chmod 600 kid-id_rsa</code> and then used to SSH right in and collect user.txt</p>
 <h2 id="privilege-escalation">Privilege Escalation</h2>
-<p><code>kid</code> dosen&rsquo;t seem to be in interesting groups nor do we have credentials to try and abuse. Checking through the code of the webapp to see if there is anything that can be used.</p>
-<p>IPs from requests that that are marked as containing special characters are entered into a <code>hackers</code> file that also appears to be empty. Though <code>kid</code> dose have write permissions. Expanding the search beyond the <code>kid</code>&rsquo;s home directory and finds another user, <code>pwn</code> We check out his directory and find a nicely named script called <code>scanlosers.sh</code></p>
+<p><code>kid</code> doesn&rsquo;t seem to be in interesting groups nor do we have credentials to try and abuse. Checking through the code of the webapp to see if there is anything that can be used.</p>
+<p>IPs from requests that that are marked as containing special characters are entered into a <code>hackers</code> file that also appears to be empty. Though <code>kid</code> does have write permissions. Expanding the search beyond the <code>kid</code>&rsquo;s home directory and finds another user, <code>pwn</code> We check out his directory and find a nicely named script called <code>scanlosers.sh</code></p>
 <p><img  src="/img/scriptkiddie-scanlosers.png"
         alt="SCANLOSERS.PNG"/></p>
 <p>It collects input from the <code>hackers</code> file found earlier. One option would be to try to provide it with input that would launch a reverse shell. An attacker can stand up a netcat listener, <code>nc -lnvp 1234</code>, and start trying to get a working payload.</p>
@@ -59,7 +59,7 @@ Nmap <span style="color:#66d9ef">done</span>: <span style="color:#ae81ff">1</spa
 <p><img  src="/img/scriptkiddie-pwnsshkey.png"
         alt/></p>
 <h2 id="root">Root</h2>
-<p>Once again, <code>pwn</code> dosen&rsquo;t any interesting groups nor are there credentials to try <em>but</em> <code>sudo -l</code> reveals they can run a command with root privileges without authentication.</p>
+<p>Once again, <code>pwn</code> doesn&rsquo;t any interesting groups nor are there credentials to try <em>but</em> <code>sudo -l</code> reveals they can run a command with root privileges without authentication.</p>
 <p><img  src="/img/scriptkiddie-pwnsudopermissions.png"
         alt/></p>
 <p>Msfconsolse can be started with root privileges. Not exactly the best sudo configuration. Launching the msfconsole we have full root privileges and nothing says we need to attack a remote target. Instead the commands can be executed directly on our current system.</p>
