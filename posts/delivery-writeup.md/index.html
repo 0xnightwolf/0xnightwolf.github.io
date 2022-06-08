@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.83.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.99.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="supported-color-schemes" content="light dark"><title>HTB Delivery&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.8a20650921066633f421ce7a745e34cd4032f36a72cc46f51a06d1fe62549284c37e461fd23cd89b3f123ccdc212cd1b.css" integrity="sha384-iiBlCSEGZjP0Ic56dF40zUAy82pyzEb1GgbR/mJUkoTDfkYf0jzYmz8SPM3CEs0b"><meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="HTB Delivery" /><body><section id="header">
@@ -10,24 +10,24 @@
 <p>In Delivery, we will leverage missconfigurations in a ticketing system and internal communications channels to gain access to where we certainly shouldn&rsquo;t be able to go.  We will also see another example of where weak and reused passwords make our job easy.</p>
 <h2 id="enumeration">Enumeration</h2>
 <p>Starting off with a standard NMAP scan and shows  both a SSH server on port 22 and a web server on port 80.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">Starting Nmap 7.91 <span style="color:#f92672">(</span> https://nmap.org <span style="color:#f92672">)</span> at 2021-01-12 15:22 UTC
-Nmap scan report <span style="color:#66d9ef">for</span> 10.10.10.222
-Host is up <span style="color:#f92672">(</span>0.15s latency<span style="color:#f92672">)</span>.
-Not shown: <span style="color:#ae81ff">998</span> closed ports
-PORT   STATE SERVICE VERSION
-22/tcp open  ssh     OpenSSH 7.9p1 Debian 10+deb10u2 <span style="color:#f92672">(</span>protocol 2.0<span style="color:#f92672">)</span>
-| ssh-hostkey:
-|   <span style="color:#ae81ff">2048</span> 9c:40:fa:85:9b:01:ac:ac:0e:bc:0c:19:51:8a:ee:27 <span style="color:#f92672">(</span>RSA<span style="color:#f92672">)</span>
-|   <span style="color:#ae81ff">256</span> 5a:0c:c0:3b:9b:76:55:2e:6e:c4:f4:b9:5d:76:17:09 <span style="color:#f92672">(</span>ECDSA<span style="color:#f92672">)</span>
-|_  <span style="color:#ae81ff">256</span> b7:9d:f7:48:9d:a2:f2:76:30:fd:42:d3:35:3a:80:8c <span style="color:#f92672">(</span>ED25519<span style="color:#f92672">)</span>
-80/tcp open  http    nginx 1.14.2
-|_http-server-header: nginx/1.14.2
-|_http-title: Welcome
-Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
-
-Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-Nmap <span style="color:#66d9ef">done</span>: <span style="color:#ae81ff">1</span> IP address <span style="color:#f92672">(</span><span style="color:#ae81ff">1</span> host up<span style="color:#f92672">)</span> scanned in 15.60 seconds
-</code></pre></div><p>Without any credentials to try for SSH, it makes the most since to tackle the web server first.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>Starting Nmap 7.91 <span style="color:#f92672">(</span> https://nmap.org <span style="color:#f92672">)</span> at 2021-01-12 15:22 UTC
+</span></span><span style="display:flex;"><span>Nmap scan report <span style="color:#66d9ef">for</span> 10.10.10.222
+</span></span><span style="display:flex;"><span>Host is up <span style="color:#f92672">(</span>0.15s latency<span style="color:#f92672">)</span>.
+</span></span><span style="display:flex;"><span>Not shown: <span style="color:#ae81ff">998</span> closed ports
+</span></span><span style="display:flex;"><span>PORT   STATE SERVICE VERSION
+</span></span><span style="display:flex;"><span>22/tcp open  ssh     OpenSSH 7.9p1 Debian 10+deb10u2 <span style="color:#f92672">(</span>protocol 2.0<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>| ssh-hostkey:
+</span></span><span style="display:flex;"><span>|   <span style="color:#ae81ff">2048</span> 9c:40:fa:85:9b:01:ac:ac:0e:bc:0c:19:51:8a:ee:27 <span style="color:#f92672">(</span>RSA<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>|   <span style="color:#ae81ff">256</span> 5a:0c:c0:3b:9b:76:55:2e:6e:c4:f4:b9:5d:76:17:09 <span style="color:#f92672">(</span>ECDSA<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>|_  <span style="color:#ae81ff">256</span> b7:9d:f7:48:9d:a2:f2:76:30:fd:42:d3:35:3a:80:8c <span style="color:#f92672">(</span>ED25519<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>80/tcp open  http    nginx 1.14.2
+</span></span><span style="display:flex;"><span>|_http-server-header: nginx/1.14.2
+</span></span><span style="display:flex;"><span>|_http-title: Welcome
+</span></span><span style="display:flex;"><span>Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+</span></span><span style="display:flex;"><span>Nmap <span style="color:#66d9ef">done</span>: <span style="color:#ae81ff">1</span> IP address <span style="color:#f92672">(</span><span style="color:#ae81ff">1</span> host up<span style="color:#f92672">)</span> scanned in 15.60 seconds
+</span></span></code></pre></div><p>Without any credentials to try for SSH, it makes the most since to tackle the web server first.</p>
 <p><img  src="/img/delivery-homepage.png"
         alt/></p>
 <p>There isn&rsquo;t much new here but there are links to a few other useful pages. A Helpdesk link and a contact page in that tells about a few ways to get in contact with the team.</p>
@@ -89,36 +89,36 @@ Nmap <span style="color:#66d9ef">done</span>: <span style="color:#ae81ff">1</spa
 <p><img  src="/img/delivery-mattermostdatabase.png"
         alt/></p>
 <p>Select the username and password fields and listing the contents to reveal the hash for the &ldquo;root&rdquo; user.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">MariaDB <span style="color:#f92672">[</span>mattermost<span style="color:#f92672">]</span>&gt; <span style="color:#66d9ef">select</span> Username, password from Users;
-+----------------------------------+--------------------------------------------------------------+
-| Username                         | password                                                     |
-+----------------------------------+--------------------------------------------------------------+
-| surveybot                        |                                                              |
-| c3ecacacc7b94f909d04dbfd308a9b93 | $2a$10$u5815SIBe2Fq1FZlv9S8I.VjU3zeSPBrIEg9wvpiLaS7ImuiItEiK |
-| 5b785171bfb34762a933e127630c4860 | $2a$10$3m0quqyvCE8Z/R1gFcCOWO6tEj6FtqtBn8fRAXQXmaKmg.HDGpS/G |
-| root                             | $2a$10$VM6EeymRxJ29r8Wjkr8Dtev0O.1STWb4.4ScG.anuu7v0EFJwgjjO |
-| ff0a21fc6fc2488195e16ea854c963ee | $2a$10$RnJsISTLc9W3iUcUggl1KOG9vqADED24CQcQ8zvUm1Ir9pxS.Pduq |
-| channelexport                    |                                                              |
-| 9ecfb4be145d47fda0724f697f35ffaf | $2a$10$s.cLPSjAVgawGOJwB7vrqenPg2lrDtOECRtjwWahOzHfq1CoFyFqm |
-| a9647633                         | $2a$10$NPohGjjgCpRgA6fyFTnKhO5Y4l5XZchc7ax5mcOplVPU/qN/KjQri |
-+----------------------------------+--------------------------------------------------------------+
-</code></pre></div><p>On the internal Mattermost channel, it was mentioned that &ldquo;PleasSubcribe!&rdquo; was probably used a lot and though it wasn&rsquo;t in rockyou.txt the admin thought it could be cracked pretty trivially with some rules.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>MariaDB <span style="color:#f92672">[</span>mattermost<span style="color:#f92672">]</span>&gt; <span style="color:#66d9ef">select</span> Username, password from Users;
+</span></span><span style="display:flex;"><span>+----------------------------------+--------------------------------------------------------------+
+</span></span><span style="display:flex;"><span>| Username                         | password                                                     |
+</span></span><span style="display:flex;"><span>+----------------------------------+--------------------------------------------------------------+
+</span></span><span style="display:flex;"><span>| surveybot                        |                                                              |
+</span></span><span style="display:flex;"><span>| c3ecacacc7b94f909d04dbfd308a9b93 | $2a$10$u5815SIBe2Fq1FZlv9S8I.VjU3zeSPBrIEg9wvpiLaS7ImuiItEiK |
+</span></span><span style="display:flex;"><span>| 5b785171bfb34762a933e127630c4860 | $2a$10$3m0quqyvCE8Z/R1gFcCOWO6tEj6FtqtBn8fRAXQXmaKmg.HDGpS/G |
+</span></span><span style="display:flex;"><span>| root                             | $2a$10$VM6EeymRxJ29r8Wjkr8Dtev0O.1STWb4.4ScG.anuu7v0EFJwgjjO |
+</span></span><span style="display:flex;"><span>| ff0a21fc6fc2488195e16ea854c963ee | $2a$10$RnJsISTLc9W3iUcUggl1KOG9vqADED24CQcQ8zvUm1Ir9pxS.Pduq |
+</span></span><span style="display:flex;"><span>| channelexport                    |                                                              |
+</span></span><span style="display:flex;"><span>| 9ecfb4be145d47fda0724f697f35ffaf | $2a$10$s.cLPSjAVgawGOJwB7vrqenPg2lrDtOECRtjwWahOzHfq1CoFyFqm |
+</span></span><span style="display:flex;"><span>| a9647633                         | $2a$10$NPohGjjgCpRgA6fyFTnKhO5Y4l5XZchc7ax5mcOplVPU/qN/KjQri |
+</span></span><span style="display:flex;"><span>+----------------------------------+--------------------------------------------------------------+
+</span></span></code></pre></div><p>On the internal Mattermost channel, it was mentioned that &ldquo;PleasSubcribe!&rdquo; was probably used a lot and though it wasn&rsquo;t in rockyou.txt the admin thought it could be cracked pretty trivially with some rules.</p>
 <p>Before it can be cracked, the hash type needs to be identified.  Hash identifier can typically get you on the right track with these and this one is predicted to be bcrypt.</p>
 <p>Rules are a way to create variations of Passwords without needing a larger password file. They can be things like adding <code>1234</code> at the end of a password or exchanging &ldquo;a&rdquo; for &ldquo;@&rdquo;. Hashcat includes a number of rules configuration files and they can be a good starting point. Next a &ldquo;wordlist&rdquo; with the single the single password, &ldquo;PleaseSubscribe!&rdquo; is created.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-PowerShell" data-lang="PowerShell">.\hashcat64.exe -a 0 -m 3200 .\hashes_in.txt .\wordlist.txt -r .\rules\base64.rule
-</code></pre></div><p><img  src="/img/delivery-hashcatcracked.png"
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-PowerShell" data-lang="PowerShell"><span style="display:flex;"><span>.\hashcat64.exe -a 0 -m 3200 .\hashes_in.txt .\wordlist.txt -r .\rules\base64.rule
+</span></span></code></pre></div><p><img  src="/img/delivery-hashcatcracked.png"
         alt/></p>
 <p>A result comes back pretty quickly.<code>root:PleaseSubscribe!21</code> That can be used to login over SSH and gain full access over the machine.</p>
 <p><img  src="/img/delivery-root.png"
         alt/></p>
 <h2 id="notetxt">note.txt</h2>
 <p>IppSec left a note.txt providing some more context and inspiration behind the foothold on this box. I highly recommend giving it a read.</p>
-<pre><code>root@Delivery:~# cat note.txt
-I hope you enjoyed this box, the attack may seem silly but it demonstrates a pretty high risk vulnerability I've seen several times.  The inspiration for the box is here:
+<pre tabindex="0"><code>root@Delivery:~# cat note.txt
+I hope you enjoyed this box, the attack may seem silly but it demonstrates a pretty high risk vulnerability I&#39;ve seen several times.  The inspiration for the box is here:
 
 - https://medium.com/intigriti/how-i-hacked-hundreds-of-companies-through-their-helpdesk-b7680ddc2d4c
 
-Keep on hacking! And please don't forget to subscribe to all the security streamers out there.
+Keep on hacking! And please don&#39;t forget to subscribe to all the security streamers out there.
 
 - ippsec
 </code></pre><p>In the spirit of the note, here are some cybersecurity streamers and YouTubers I would recommend checking out.</p>
@@ -138,7 +138,8 @@ Keep on hacking! And please don't forget to subscribe to all the security stream
 .</p>
 <p><a href="https://www.youtube.com/channel/UCW6MNdOsqv2E9AjQkv9we7A"target="_blank" rel="noopener noreferrer">PwnFunction</a>
  has some really awesome dives explaining various web vulnerabilities, what causes them and how to exploit them. Recently he has also been working on a Binary Exploitation series.</p>
-<p>If you are looking for <em>even more</em> cybersecurity content creators, check out this video -&gt; <a href="https://www.youtube.com/watch?v=GSraDuD4ziQ">https://www.youtube.com/watch?v=GSraDuD4ziQ</a></p>
+<p>If you are looking for <em>even more</em> cybersecurity content creators, check out this video -&gt; <a href="https://www.youtube.com/watch?v=GSraDuD4ziQ"target="_blank" rel="noopener noreferrer">https://www.youtube.com/watch?v=GSraDuD4ziQ</a>
+</p>
 <h2 id="wrap-up">Wrap up</h2>
 <p>This box is probably one of my favorites simply because the foothold was so satisfying once I figured out and yet incredibly simple. I really appreciate IppSec taking the time to make this box and include the note about the inspiration. Hopefully, it was insightful for the rest of you as well.</p>
 </article>

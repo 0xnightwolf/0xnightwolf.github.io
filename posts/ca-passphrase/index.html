@@ -1,20 +1,20 @@
 <!DOCTYPE html>
-<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.83.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.99.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="supported-color-schemes" content="light dark"><title>Cyber Apocalypse 2021: Passphrase&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.8a20650921066633f421ce7a745e34cd4032f36a72cc46f51a06d1fe62549284c37e461fd23cd89b3f123ccdc212cd1b.css" integrity="sha384-iiBlCSEGZjP0Ic56dF40zUAy82pyzEb1GgbR/mJUkoTDfkYf0jzYmz8SPM3CEs0b"><meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="Cyber Apocalypse 2021: Passphrase" /><body><section id="header">
     <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/img/NightWolf.jpg" alt /><span class="site name">The Wolf Den</span></a></span>
         <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/ctf-writeups">CTF Writeups</a><a class="nav item" href="/htb-writeups">HTB Writeups</a><a class="nav item" href="/about">About</a></nav></div></span></div></section><section id="content"><div class="article-container"><section class="article header">
     <h1 class="article title">Cyber Apocalypse 2021: Passphrase</h1><p class="article date">2021-04-25</p></section><article class="article markdown-body"><p>Passphrase is a ELF 64 bit executable. It is dynamically linked and is not stripped for debug symbols.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ file passphrase
-passphrase: ELF 64-bit LSB shared object, x86-64, version <span style="color:#ae81ff">1</span> <span style="color:#f92672">(</span>SYSV<span style="color:#f92672">)</span>, dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, <span style="color:#66d9ef">for</span> GNU/Linux 3.2.0, BuildID<span style="color:#f92672">[</span>sha1<span style="color:#f92672">]=</span>60f6b6064d2e34a2b6a24dda9feb943b0b8c360f, not stripped
-</code></pre></div><p>Strings doens&rsquo;t reveal a whole lot of info. The binary prompts for a &ldquo;secret passphrase&rdquo;. If it is correct, it asks that a message, presumably the flag, be taken to the chief.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ file passphrase
+</span></span><span style="display:flex;"><span>passphrase: ELF 64-bit LSB shared object, x86-64, version <span style="color:#ae81ff">1</span> <span style="color:#f92672">(</span>SYSV<span style="color:#f92672">)</span>, dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, <span style="color:#66d9ef">for</span> GNU/Linux 3.2.0, BuildID<span style="color:#f92672">[</span>sha1<span style="color:#f92672">]=</span>60f6b6064d2e34a2b6a24dda9feb943b0b8c360f, not stripped
+</span></span></code></pre></div><p>Strings doens&rsquo;t reveal a whole lot of info. The binary prompts for a &ldquo;secret passphrase&rdquo;. If it is correct, it asks that a message, presumably the flag, be taken to the chief.</p>
 <p>Since the executable is not stripped when it is opened in Ghidra main() is clearly listed in the functions section of the symbol tree.</p>
 <p>There a load of variables are initialized.</p>
 <p><img  src="/img/ca-passphrase-vars.png"
         alt/></p>
 <p>They are then set to various hex values while the prompt for a &ldquo;secret passphrase&rdquo; is output.</p>
-<pre><code>collect input
+<pre tabindex="0"><code>collect input
 compare input with string of variable values
 
 if match{

@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.83.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.99.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="supported-color-schemes" content="light dark"><title>UIUCTF Kernel_Memory_Leak&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.8a20650921066633f421ce7a745e34cd4032f36a72cc46f51a06d1fe62549284c37e461fd23cd89b3f123ccdc212cd1b.css" integrity="sha384-iiBlCSEGZjP0Ic56dF40zUAy82pyzEb1GgbR/mJUkoTDfkYf0jzYmz8SPM3CEs0b"><meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="UIUCTF Kernel_Memory_Leak" /><body><section id="header">
     <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/img/NightWolf.jpg" alt /><span class="site name">The Wolf Den</span></a></span>
         <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/ctf-writeups">CTF Writeups</a><a class="nav item" href="/htb-writeups">HTB Writeups</a><a class="nav item" href="/about">About</a></nav></div></span></div></section><section id="content"><div class="article-container"><section class="article header">
     <h1 class="article title">UIUCTF Kernel_Memory_Leak</h1><p class="article date">2020-07-20</p></section><article class="article markdown-body"><h1 id="kernel_memory_leak">Kernel_Memory_Leak</h1>
-<pre><code>The kernel is leaking memory to the user! That's probably not good, right?
+<pre tabindex="0"><code>The kernel is leaking memory to the user! That&#39;s probably not good, right?
 
-One of the syscalls can be convinced to leak the kernel stack. Find the leak and you'll receive a flag. Keep leaking kernel secrets until you see the }.
+One of the syscalls can be convinced to leak the kernel stack. Find the leak and you&#39;ll receive a flag. Keep leaking kernel secrets until you see the }.
 
 (Hint: finding the leak is half the battle, getting it to leak the entire flag requires some outside the box thinking)
 
@@ -23,16 +23,16 @@ Author: ravi
         alt="KernelPanic"/></p>
 <p>Oh dear. Kernel Panic. That&rsquo;s not good. Or is it?  That address <code>0x75607563</code> looks rather interesting. If we convert the hex to ascii we get some familiar characters, <code>uiuc</code> That looks like the beginning of a flag doesn&rsquo;t it?</p>
 <p>We reboot our VM and try again. This time we use <code>%c</code>s as this will leak the date as readable characters and allow us to save space in the alert box.</p>
-<pre><code>alert %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c
+<pre tabindex="0"><code>alert %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c
 </code></pre><p>This gives us <em>most</em> of the flag it seems. <code>uiuctf{aed05bs4417$#4c644</code> But we seem to be missing some of it.</p>
 <p><img  src="/img/PartFlag.png"
         alt/></p>
 <h2 id="kernel-panics">Kernel Panics</h2>
 <p>Now we have a slight problem. We have some of the flag but alert box won&rsquo;t display the rest of the flag.  The challenges descriptions says we might need to &ldquo;think outside the box&rdquo; and fortunately, I have an idea. Remember how we first tried to get data using the alert function we caused a kernel panic? That actually leaked the hex codes of the first several characters. Maybe we can use kernel panics to leak characters getting cut off by the  alert box.</p>
 <p>Sure enough we can.</p>
-<pre><code>alert %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%s
+<pre tabindex="0"><code>alert %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%s
 </code></pre><p>This allows us to leak two more bytes but we haven&rsquo;t got a closing bracket so we add a few more characters and cause another panic.</p>
-<pre><code>alert %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%s
+<pre tabindex="0"><code>alert %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%s
 </code></pre><p>Kernel Panic!!! And we get the final bytes of the flag. Totally worth it. <em>Sorry, pwnyOS.</em></p>
 <p><img  src="/img/TheLongLeakResults.png"
         alt/></p>

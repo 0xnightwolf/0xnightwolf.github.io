@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.83.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.99.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="supported-color-schemes" content="light dark"><title>UIUCTF Whats_A_Syscall&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.8a20650921066633f421ce7a745e34cd4032f36a72cc46f51a06d1fe62549284c37e461fd23cd89b3f123ccdc212cd1b.css" integrity="sha384-iiBlCSEGZjP0Ic56dF40zUAy82pyzEb1GgbR/mJUkoTDfkYf0jzYmz8SPM3CEs0b"><meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="UIUCTF Whats_A_Syscall" /><body><section id="header">
@@ -7,9 +7,9 @@
         <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/ctf-writeups">CTF Writeups</a><a class="nav item" href="/htb-writeups">HTB Writeups</a><a class="nav item" href="/about">About</a></nav></div></span></div></section><section id="content"><div class="article-container"><section class="article header">
     <h1 class="article title">UIUCTF Whats_A_Syscall</h1><p class="article date">2020-07-20</p></section><article class="article markdown-body"><h1 id="whats_a_syscall">Whats_A_Syscall?</h1>
 <p>Challenge Description</p>
-<pre><code>Syscall 14 is known as &quot;SANDBOX_SPECIAL&quot;... I wonder if that would be useful here.
+<pre tabindex="0"><code>Syscall 14 is known as &#34;SANDBOX_SPECIAL&#34;... I wonder if that would be useful here.
 
-You'll be stuck in a never ending loop of binexec until you perform syscall 14.
+You&#39;ll be stuck in a never ending loop of binexec until you perform syscall 14.
 
 To learn about syscalls and how they work in pwnyOS, check out the documentation!
 
@@ -32,9 +32,11 @@ Author: ravi
 </blockquote>
 <p>Now that we have some definitions we can understand that our goal is to write some code that executes a specific piece of code. By doing this we should be able to retrieve the flag.</p>
 <p>We start by checking out the documentation and quickly identify &ldquo;syscall 14&rdquo; the <code>SANDBOX_SPECIAL</code>
-<a href="https://github.com/sigpwny/pwnyOS-2020-docs/blob/master/Syscalls.pdf">https://github.com/sigpwny/pwnyOS-2020-docs/blob/master/Syscalls.pdf</a></p>
+<a href="https://github.com/sigpwny/pwnyOS-2020-docs/blob/master/Syscalls.pdf"target="_blank" rel="noopener noreferrer">https://github.com/sigpwny/pwnyOS-2020-docs/blob/master/Syscalls.pdf</a>
+</p>
 <p>Now you may say that you don&rsquo;t know assembly let alone machine language. Fortunately, for us we have an example that was helpfully included in the documentation. We can also see that this is i386 bytecode.</p>
-<p><a href="https://github.com/sigpwny/pwnyOS-2020-docs/blob/master/Getting_Started.pdf">https://github.com/sigpwny/pwnyOS-2020-docs/blob/master/Getting_Started.pdf</a></p>
+<p><a href="https://github.com/sigpwny/pwnyOS-2020-docs/blob/master/Getting_Started.pdf"target="_blank" rel="noopener noreferrer">https://github.com/sigpwny/pwnyOS-2020-docs/blob/master/Getting_Started.pdf</a>
+</p>
 <p><img  src="/img/ExampleBinExec.png"
         alt/></p>
 <p><del>Unfortunately, it is written in AT&amp;T syntax.</del></p>
@@ -44,12 +46,12 @@ Author: ravi
 <li>Third, we call interrupt with 0x80, which tells the system we want to execute a syscall.</li>
 <li>Finally, we call ret.</li>
 </ul>
-<pre><code>movl $0x0804c0a0, %eax
+<pre tabindex="0"><code>movl $0x0804c0a0, %eax
 movl $14, %eax
 int $0x80
 ret
 </code></pre><p>Cool. Now that we can visualize this in the assembly. We can do a few different things. We can try to compile but I had some challenges getting it to work. I was able to use both the example assembly, shellcode, and very handy discord bot called &ldquo;REBot&rdquo; to work out the shellcode needed line by line.</p>
-<pre><code>b2 a0 c0 04 08 8d 1d 15 00 00 00 01 d8 b8 0e 00 00 00 cd 80 c3
+<pre tabindex="0"><code>b2 a0 c0 04 08 8d 1d 15 00 00 00 01 d8 b8 0e 00 00 00 cd 80 c3
 </code></pre><p><img  src="/img/SysCall.png"
         alt/></p>
 <p>We grab the flag, hit enter, and are dropped into a &ldquo;Rash&rdquo; shell. Ready to tackle the next challenge.</p>

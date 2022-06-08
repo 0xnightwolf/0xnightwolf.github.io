@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.83.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.99.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="supported-color-schemes" content="light dark"><title>HTB OpenKeyS&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.8a20650921066633f421ce7a745e34cd4032f36a72cc46f51a06d1fe62549284c37e461fd23cd89b3f123ccdc212cd1b.css" integrity="sha384-iiBlCSEGZjP0Ic56dF40zUAy82pyzEb1GgbR/mJUkoTDfkYf0jzYmz8SPM3CEs0b"><meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="HTB OpenKeyS" /><body><section id="header">
@@ -10,86 +10,87 @@
 <p>OpenKeyS is an OpenBSD box that features CVE 2019-19521 as an vulnerability that allows you to gain access to user and ultimately root.</p>
 <h2 id="enumeration">Enumeration</h2>
 <p>We start off with an NMAP scan  we can see that there are two open ports. 22 for SSH and 80 for OpenBSD httpd.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">Nmap scan report <span style="color:#66d9ef">for</span> 10.10.10.199
-Host is up <span style="color:#f92672">(</span>0.079s latency<span style="color:#f92672">)</span>.
-Not shown: <span style="color:#ae81ff">998</span> closed ports
-PORT   STATE SERVICE VERSION
-22/tcp open  ssh     OpenSSH 8.1 <span style="color:#f92672">(</span>protocol 2.0<span style="color:#f92672">)</span>
-| ssh-hostkey:
-|   <span style="color:#ae81ff">3072</span> 5e:ff:81:e9:1f:9b:f8:9a:25:df:5d:82:1a:dd:7a:81 <span style="color:#f92672">(</span>RSA<span style="color:#f92672">)</span>
-|   <span style="color:#ae81ff">256</span> 64:7a:5a:52:85:c5:6d:d5:4a:6b:a7:1a:9a:8a:b9:bb <span style="color:#f92672">(</span>ECDSA<span style="color:#f92672">)</span>
-|_  <span style="color:#ae81ff">256</span> 12:35:4b:6e:23:09:dc:ea:00:8c:72:20:c7:50:32:f3 <span style="color:#f92672">(</span>ED25519<span style="color:#f92672">)</span>
-80/tcp open  http    OpenBSD httpd
-|_http-title: Site doesn<span style="color:#960050;background-color:#1e0010">&#39;</span>t have a title <span style="color:#f92672">(</span>text/html<span style="color:#f92672">)</span>.
-</code></pre></div><p>We decided to take a look at the web server first since we don&rsquo;t have credentials and bruteforcing especially blind isn&rsquo;t usually the path on HTB.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>Nmap scan report <span style="color:#66d9ef">for</span> 10.10.10.199
+</span></span><span style="display:flex;"><span>Host is up <span style="color:#f92672">(</span>0.079s latency<span style="color:#f92672">)</span>.
+</span></span><span style="display:flex;"><span>Not shown: <span style="color:#ae81ff">998</span> closed ports
+</span></span><span style="display:flex;"><span>PORT   STATE SERVICE VERSION
+</span></span><span style="display:flex;"><span>22/tcp open  ssh     OpenSSH 8.1 <span style="color:#f92672">(</span>protocol 2.0<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>| ssh-hostkey:
+</span></span><span style="display:flex;"><span>|   <span style="color:#ae81ff">3072</span> 5e:ff:81:e9:1f:9b:f8:9a:25:df:5d:82:1a:dd:7a:81 <span style="color:#f92672">(</span>RSA<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>|   <span style="color:#ae81ff">256</span> 64:7a:5a:52:85:c5:6d:d5:4a:6b:a7:1a:9a:8a:b9:bb <span style="color:#f92672">(</span>ECDSA<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>|_  <span style="color:#ae81ff">256</span> 12:35:4b:6e:23:09:dc:ea:00:8c:72:20:c7:50:32:f3 <span style="color:#f92672">(</span>ED25519<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>80/tcp open  http    OpenBSD httpd
+</span></span><span style="display:flex;"><span>|_http-title: Site doesn<span style="color:#960050;background-color:#1e0010">&#39;</span>t have a title <span style="color:#f92672">(</span>text/html<span style="color:#f92672">)</span>.
+</span></span></code></pre></div><p>We decided to take a look at the web server first since we don&rsquo;t have credentials and bruteforcing especially blind isn&rsquo;t usually the path on HTB.</p>
 <p>We open port 80 in a web browser and find  by logging we will apparently be given ssh keys. That is very convenient.</p>
 <p><img  src="/img/OpenKeyS_WebLogin.png"
         alt/></p>
 <p>However we don&rsquo;t have credentials and as mentioned before, it is unlikely that we would need to bruteforce this. There is likely something else we can leverage.</p>
 <p>We fire up ffuf and find a number of directories.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">
-        /<span style="color:#e6db74">&#39;___\  /&#39;</span>___<span style="color:#ae81ff">\ </span>          /<span style="color:#960050;background-color:#1e0010">&#39;</span>___<span style="color:#ae81ff">\ </span>      
-       /<span style="color:#ae81ff">\ \_</span>_/ /<span style="color:#ae81ff">\ \_</span>_/  __  __  /<span style="color:#ae81ff">\ \_</span>_/       
-       <span style="color:#ae81ff">\ \ </span>,__<span style="color:#ae81ff">\\</span> <span style="color:#ae81ff">\ </span>,__<span style="color:#ae81ff">\/\ \/\ \ \ \ </span>,__<span style="color:#ae81ff">\ </span>     
-        <span style="color:#ae81ff">\ \ \_</span>/ <span style="color:#ae81ff">\ \ \_</span>/<span style="color:#ae81ff">\ \ \_\ \ \ \ \_</span>/      
-         <span style="color:#ae81ff">\ \_\ </span>  <span style="color:#ae81ff">\ \_\ </span> <span style="color:#ae81ff">\ \_</span>___/  <span style="color:#ae81ff">\ \_\ </span>      
-          <span style="color:#ae81ff">\/</span>_/    <span style="color:#ae81ff">\/</span>_/   <span style="color:#ae81ff">\/</span>___/    <span style="color:#ae81ff">\/</span>_/       
-
-       v1.0.2
-________________________________________________
-
- :: Method           : GET
- :: URL              : http://10.10.10.199/FUZZ/
- :: Follow redirects : false
- :: Calibration      : false
- :: Timeout          : <span style="color:#ae81ff">10</span>
- :: Threads          : <span style="color:#ae81ff">40</span>
- :: Matcher          : Response status: 200,204,301,302,307,401,403
-________________________________________________
-
-images                  <span style="color:#f92672">[</span>Status: 200, Size: 589, Words: 160, Lines: 22<span style="color:#f92672">]</span>
-css                     <span style="color:#f92672">[</span>Status: 200, Size: 697, Words: 215, Lines: 23<span style="color:#f92672">]</span>
-includes                <span style="color:#f92672">[</span>Status: 200, Size: 711, Words: 211, Lines: 23<span style="color:#f92672">]</span>
-js                      <span style="color:#f92672">[</span>Status: 200, Size: 582, Words: 156, Lines: 22<span style="color:#f92672">]</span>
-vendor                  <span style="color:#f92672">[</span>Status: 200, Size: 1522, Words: 635, Lines: 30<span style="color:#f92672">]</span>
-fonts                   <span style="color:#f92672">[</span>Status: 200, Size: 1066, Words: 385, Lines: 26<span style="color:#f92672">]</span>
-                        <span style="color:#f92672">[</span>Status: 200, Size: 96, Words: 13, Lines: 7<span style="color:#f92672">]</span>
-</code></pre></div><p>At this point, I got stuck for longer than I care to admit. I felt like the next step had to be right in front of my face about to bite my noes off and I was right.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        /<span style="color:#e6db74">&#39;___\  /&#39;</span>___<span style="color:#ae81ff">\ </span>          /<span style="color:#960050;background-color:#1e0010">&#39;</span>___<span style="color:#ae81ff">\ </span>      
+</span></span><span style="display:flex;"><span>       /<span style="color:#ae81ff">\ \_</span>_/ /<span style="color:#ae81ff">\ \_</span>_/  __  __  /<span style="color:#ae81ff">\ \_</span>_/       
+</span></span><span style="display:flex;"><span>       <span style="color:#ae81ff">\ \ </span>,__<span style="color:#ae81ff">\\</span> <span style="color:#ae81ff">\ </span>,__<span style="color:#ae81ff">\/\ \/\ \ \ \ </span>,__<span style="color:#ae81ff">\ </span>     
+</span></span><span style="display:flex;"><span>        <span style="color:#ae81ff">\ \ \_</span>/ <span style="color:#ae81ff">\ \ \_</span>/<span style="color:#ae81ff">\ \ \_\ \ \ \ \_</span>/      
+</span></span><span style="display:flex;"><span>         <span style="color:#ae81ff">\ \_\ </span>  <span style="color:#ae81ff">\ \_\ </span> <span style="color:#ae81ff">\ \_</span>___/  <span style="color:#ae81ff">\ \_\ </span>      
+</span></span><span style="display:flex;"><span>          <span style="color:#ae81ff">\/</span>_/    <span style="color:#ae81ff">\/</span>_/   <span style="color:#ae81ff">\/</span>___/    <span style="color:#ae81ff">\/</span>_/       
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>       v1.0.2
+</span></span><span style="display:flex;"><span>________________________________________________
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span> :: Method           : GET
+</span></span><span style="display:flex;"><span> :: URL              : http://10.10.10.199/FUZZ/
+</span></span><span style="display:flex;"><span> :: Follow redirects : false
+</span></span><span style="display:flex;"><span> :: Calibration      : false
+</span></span><span style="display:flex;"><span> :: Timeout          : <span style="color:#ae81ff">10</span>
+</span></span><span style="display:flex;"><span> :: Threads          : <span style="color:#ae81ff">40</span>
+</span></span><span style="display:flex;"><span> :: Matcher          : Response status: 200,204,301,302,307,401,403
+</span></span><span style="display:flex;"><span>________________________________________________
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>images                  <span style="color:#f92672">[</span>Status: 200, Size: 589, Words: 160, Lines: 22<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span>css                     <span style="color:#f92672">[</span>Status: 200, Size: 697, Words: 215, Lines: 23<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span>includes                <span style="color:#f92672">[</span>Status: 200, Size: 711, Words: 211, Lines: 23<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span>js                      <span style="color:#f92672">[</span>Status: 200, Size: 582, Words: 156, Lines: 22<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span>vendor                  <span style="color:#f92672">[</span>Status: 200, Size: 1522, Words: 635, Lines: 30<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span>fonts                   <span style="color:#f92672">[</span>Status: 200, Size: 1066, Words: 385, Lines: 26<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span>                        <span style="color:#f92672">[</span>Status: 200, Size: 96, Words: 13, Lines: 7<span style="color:#f92672">]</span>
+</span></span></code></pre></div><p>At this point, I got stuck for longer than I care to admit. I felt like the next step had to be right in front of my face about to bite my noes off and I was right.</p>
 <p>Eventually I checked out <code>/includes</code> We instantly found some lovely files. <code>auth.php</code> which we is blank if we attempt to read and <code>auth.php.swp</code> Which is not.</p>
 <p><code>http://10.10.10.199/includes/auth.php.swp</code></p>
-<pre><code>b0VIM 8.1�-�^���jenniferopenkeys.htb/var/www/htdocs/includes/auth.php 3210#&quot;! Utp=ad� � =����sWB@?&quot; �������mgC� � � { a W J @ �������vpnmUS0���J� � � � � � � � � � � ?&gt;} session_start(); session_destroy(); session_unset();{function close_session()} $_SESSION[&quot;username&quot;] = $_REQUEST['username']; $_SESSION[&quot;user_agent&quot;] = $_SERVER['HTTP_USER_AGENT']; $_SESSION[&quot;remote_addr&quot;] = $_SERVER['REMOTE_ADDR']; $_SESSION[&quot;last_activity&quot;] = $_SERVER['REQUEST_TIME']; $_SESSION[&quot;login_time&quot;] = $_SERVER['REQUEST_TIME']; $_SESSION[&quot;logged_in&quot;] = True;{function init_session()} } return False; { else } } return True; $_SESSION['last_activity'] = $time; // Session is active, update last activity time and return True { else } return False; close_session(); { ($time - $_SESSION['last_activity']) &gt; $session_timeout) if (isset($_SESSION['last_activity']) &amp;&amp; $time = $_SERVER['REQUEST_TIME']; // Has the session expired? { if(isset($_SESSION[&quot;logged_in&quot;])) // Is the user logged in? session_start(); // Start the session $session_timeout = 300; // Session timeout in seconds{function is_active_session()} return $retcode; system($cmd, $retcode); $cmd = escapeshellcmd(&quot;../auth_helpers/check_auth &quot; . $username . &quot; &quot; . $password);{function authenticate($username, $password)
+<pre tabindex="0"><code>b0VIM 8.1�-�^���jenniferopenkeys.htb/var/www/htdocs/includes/auth.php 3210#&#34;! Utp=ad� � =����sWB@?&#34; �������mgC� � � { a W J @ �������vpnmUS0���J� � � � � � � � � � � ?&gt;} session_start(); session_destroy(); session_unset();{function close_session()} $_SESSION[&#34;username&#34;] = $_REQUEST[&#39;username&#39;]; $_SESSION[&#34;user_agent&#34;] = $_SERVER[&#39;HTTP_USER_AGENT&#39;]; $_SESSION[&#34;remote_addr&#34;] = $_SERVER[&#39;REMOTE_ADDR&#39;]; $_SESSION[&#34;last_activity&#34;] = $_SERVER[&#39;REQUEST_TIME&#39;]; $_SESSION[&#34;login_time&#34;] = $_SERVER[&#39;REQUEST_TIME&#39;]; $_SESSION[&#34;logged_in&#34;] = True;{function init_session()} } return False; { else } } return True; $_SESSION[&#39;last_activity&#39;] = $time; // Session is active, update last activity time and return True { else } return False; close_session(); { ($time - $_SESSION[&#39;last_activity&#39;]) &gt; $session_timeout) if (isset($_SESSION[&#39;last_activity&#39;]) &amp;&amp; $time = $_SERVER[&#39;REQUEST_TIME&#39;]; // Has the session expired? { if(isset($_SESSION[&#34;logged_in&#34;])) // Is the user logged in? session_start(); // Start the session $session_timeout = 300; // Session timeout in seconds{function is_active_session()} return $retcode; system($cmd, $retcode); $cmd = escapeshellcmd(&#34;../auth_helpers/check_auth &#34; . $username . &#34; &#34; . $password);{function authenticate($username, $password)
 </code></pre><p>As you can see it isn&rsquo;t very friendly to read but we do find some very useful info. We now have a username, <code>jennifer</code>. There is also a reverence to another file, <code>../auth_helpers/check_auth</code> Point our browser at that page and we receive an elf exactable. Based of <code>/includes/auth.php.swp</code> it would see to be used to check the authentication for users logging in on the web page.</p>
 <p>This is where we find a rabbit hole. We can spend a ton of time reverseing this binary but it isn&rsquo;t going to gain us much. What we need can be found with a simple strings.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">/usr/libexec/ld.so                                            
-OpenBSD                                                      
-libc.so.95.1                                                      
-_csu_finish                                                       
-exit                                                    
-_Jv_RegisterClasses                                                             
-atexit                                                         
-auth_userokay                                                           
-_end                                                       
-AWAVAUATSH                                                            
-t-E1                                                         
-t7E1                                                        
-ASAWAVAT                                                        
-A<span style="color:#ae81ff">\A</span>^A_A<span style="color:#f92672">[]</span>                                                    
-ASAWAVP                                                       
-A^A_A<span style="color:#f92672">[]</span>L3                                                   
-Linker: LLD 8.0.1                                          
-.interp                                                   
-.note.openbsd.ident                                                  
-.dynsym                                                     
-.gnu.hash                                                   
-.hash                                                        
-.dynstr                                                    
-.rela.dyn                                                      
-.rela.plt                                                   
-.eh_frame_hdr
-.eh_frame
-...
-</code></pre></div><p>Right at the top we find a reference to a specific version of libc. If we google along the lines of <code>libc.so.95.1 exploit</code> we find reference to CVE 2019-19521. An extremely crazy bug for openbsd that allows for authentication <strong>bypass</strong>. That sounds pretty useful doesn&rsquo;t it?</p>
-<p><a href="https://n3x0.com/2019/12/05/severe-auth-bypass-and-priv-esc-vulnerabilities-disclosed-in-openbsd/">https://n3x0.com/2019/12/05/severe-auth-bypass-and-priv-esc-vulnerabilities-disclosed-in-openbsd/</a></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>/usr/libexec/ld.so                                            
+</span></span><span style="display:flex;"><span>OpenBSD                                                      
+</span></span><span style="display:flex;"><span>libc.so.95.1                                                      
+</span></span><span style="display:flex;"><span>_csu_finish                                                       
+</span></span><span style="display:flex;"><span>exit                                                    
+</span></span><span style="display:flex;"><span>_Jv_RegisterClasses                                                             
+</span></span><span style="display:flex;"><span>atexit                                                         
+</span></span><span style="display:flex;"><span>auth_userokay                                                           
+</span></span><span style="display:flex;"><span>_end                                                       
+</span></span><span style="display:flex;"><span>AWAVAUATSH                                                            
+</span></span><span style="display:flex;"><span>t-E1                                                         
+</span></span><span style="display:flex;"><span>t7E1                                                        
+</span></span><span style="display:flex;"><span>ASAWAVAT                                                        
+</span></span><span style="display:flex;"><span>A<span style="color:#ae81ff">\A</span>^A_A<span style="color:#f92672">[]</span>                                                    
+</span></span><span style="display:flex;"><span>ASAWAVP                                                       
+</span></span><span style="display:flex;"><span>A^A_A<span style="color:#f92672">[]</span>L3                                                   
+</span></span><span style="display:flex;"><span>Linker: LLD 8.0.1                                          
+</span></span><span style="display:flex;"><span>.interp                                                   
+</span></span><span style="display:flex;"><span>.note.openbsd.ident                                                  
+</span></span><span style="display:flex;"><span>.dynsym                                                     
+</span></span><span style="display:flex;"><span>.gnu.hash                                                   
+</span></span><span style="display:flex;"><span>.hash                                                        
+</span></span><span style="display:flex;"><span>.dynstr                                                    
+</span></span><span style="display:flex;"><span>.rela.dyn                                                      
+</span></span><span style="display:flex;"><span>.rela.plt                                                   
+</span></span><span style="display:flex;"><span>.eh_frame_hdr
+</span></span><span style="display:flex;"><span>.eh_frame
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></div><p>Right at the top we find a reference to a specific version of libc. If we google along the lines of <code>libc.so.95.1 exploit</code> we find reference to CVE 2019-19521. An extremely crazy bug for openbsd that allows for authentication <strong>bypass</strong>. That sounds pretty useful doesn&rsquo;t it?</p>
+<p><a href="https://n3x0.com/2019/12/05/severe-auth-bypass-and-priv-esc-vulnerabilities-disclosed-in-openbsd/"target="_blank" rel="noopener noreferrer">https://n3x0.com/2019/12/05/severe-auth-bypass-and-priv-esc-vulnerabilities-disclosed-in-openbsd/</a>
+</p>
 <p>The above is a blog that discusses the vulnerability in more depth. Essentially, there is a flaw in how OpenBSD authentication works. When <code>-schallenge</code> is supplied for a username it is parsed as a command line option and further authentication is not requested.</p>
 <p>Remember how an elf binary is responsible for authentication the website? That is probably vulnerable. We give it a enter <code>-schallenge</code> and <code>passwd</code> (or whatever else you want for a password) and then attempt to login&hellip;</p>
 <p><img  src="/img/OpenKeyS_WebSchall.png"
@@ -112,8 +113,10 @@ Linker: LLD 8.0.1
         alt/></p>
 <p>Worth a shot though right?</p>
 <p>This article goes through some more specific examples of the vulnerability.
-<a href="https://www.openwall.com/lists/oss-security/2019/12/04/5">https://www.openwall.com/lists/oss-security/2019/12/04/5</a>  One of which is a privilege escalation. I attempted to pull it of manually following the article but wasn&rsquo;t sucessful. I was instead able to find a script on github that was based on the code and this one worked</p>
-<p><a href="https://github.com/bcoles/local-exploits/blob/master/CVE-2019-19520/openbsd-authroot">https://github.com/bcoles/local-exploits/blob/master/CVE-2019-19520/openbsd-authroot</a></p>
+<a href="https://www.openwall.com/lists/oss-security/2019/12/04/5"target="_blank" rel="noopener noreferrer">https://www.openwall.com/lists/oss-security/2019/12/04/5</a>
+  One of which is a privilege escalation. I attempted to pull it of manually following the article but wasn&rsquo;t sucessful. I was instead able to find a script on github that was based on the code and this one worked</p>
+<p><a href="https://github.com/bcoles/local-exploits/blob/master/CVE-2019-19520/openbsd-authroot"target="_blank" rel="noopener noreferrer">https://github.com/bcoles/local-exploits/blob/master/CVE-2019-19520/openbsd-authroot</a>
+</p>
 <p>It take two steps. First we leverage xlock, a binary that locks the local display until a password is entered, to join the auth user group. From there the exploit creates and Skey which is used for onetime authentication. The way this interacts with su is different. Su can then be run using the skey for authentication and it does not call a segfault.</p>
 <p><img  src="/img/OpenKeyS_AuthScript.png"
         alt/></p>

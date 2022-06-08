@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.83.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.99.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="supported-color-schemes" content="light dark"><title>UIUCTF Time_To_Start&nbsp;&ndash;&nbsp;The Wolf Den</title><link rel="stylesheet" href="/css/core.min.8a20650921066633f421ce7a745e34cd4032f36a72cc46f51a06d1fe62549284c37e461fd23cd89b3f123ccdc212cd1b.css" integrity="sha384-iiBlCSEGZjP0Ic56dF40zUAy82pyzEb1GgbR/mJUkoTDfkYf0jzYmz8SPM3CEs0b"><meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="UIUCTF Time_To_Start" /><body><section id="header">
@@ -7,7 +7,7 @@
         <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/ctf-writeups">CTF Writeups</a><a class="nav item" href="/htb-writeups">HTB Writeups</a><a class="nav item" href="/about">About</a></nav></div></span></div></section><section id="content"><div class="article-container"><section class="article header">
     <h1 class="article title">UIUCTF Time_To_Start</h1><p class="article date">2020-07-20</p></section><article class="article markdown-body"><h1 id="time_to_start">Time_To_Start</h1>
 <p>Challenge Description</p>
-<pre><code>Welcome to pwnyOS!!
+<pre tabindex="0"><code>Welcome to pwnyOS!!
 
 pwnyOS is a custom x86 operating system that supports link-time kASLR, multitasking and kernel threads, execution of genuine ELF files, a realtime high resolution graphics engine, and a custom hierarchical file system. This OS was written from the ground up with its use as a challenge for UIUCTF 2020 in mind. All source code in the OS is 100% custom handwritten C and assembly- there are no libraries used, and none of its code can be found anywhere online. This competition simulates an unprivileged user with physical access to a keyboard and terminal attempting to gain local privilege escalation on an unfamiliar system.
 
@@ -17,7 +17,7 @@ System Calls: https://github.com/sigpwny/pwnyOS-2020-docs/blob/master/Syscalls.p
 
 For your first challenge: Login to the OS with username sandb0x
 
-Password is 4 characters, all lowercase letters. First character is 'p'. I wonder if there's a way to leak the next char, knowing that the first part of the password is right...?
+Password is 4 characters, all lowercase letters. First character is &#39;p&#39;. I wonder if there&#39;s a way to leak the next char, knowing that the first part of the password is right...?
 
 Author: ravi
 </code></pre><h2 id="login">Login</h2>
@@ -29,7 +29,7 @@ We have a username <code>sandb0x</code> but only the first character for the pas
 <p>We know the first character will be the letter <code>p</code> Since we know the first character we start playing around with some characters that we know are incorrect. We notice that any other character quickly returns <code>incorrect</code> while for <code>p</code> the response takes a bit longer. Based off this and the reference to time in the challenge name we can guess this is some kind of timing attack.</p>
 <p>The basic idea is that there will be a discrepancy in the time that it takes to complete certain actions. That serves to leak information about checked values.</p>
 <p>We start trying different characters and tracking how long it takes pwnyOS to respond. We notice that the responses are fairly close to each other. However, as we continue we notice a single character, <code>w</code>, takes longer to respond than the others. Perhaps, this is the second character of the password.</p>
-<pre><code> pa 1.49 sec
+<pre tabindex="0"><code> pa 1.49 sec
  pb 1.49 sec
  pc 1.19 sec
  pd 1.43 sec
@@ -39,9 +39,8 @@ We have a username <code>sandb0x</code> but only the first character for the pas
  px 1.47 sec
  py 1.22 sec
  pz 1.42 sec
-
 </code></pre><p>We then start search for the third character and once again notice another character that takes longer than all the others. Seems we are on the right track. We know have three characters. <code>pwn</code></p>
-<pre><code>pwa 2.10 sec
+<pre tabindex="0"><code>pwa 2.10 sec
 pwb 2.08 sec
 pwc 2.20 sec
 pwd 2.58 sec
@@ -52,7 +51,7 @@ pwo 2.40 sec
 pwp 2.30 sec
 pwq 2.17 sec
 </code></pre><p>We know the password is four characters long so we are nearly there. For kicks we do the same timing and notice that this time there is a character that leads to a <em>much</em> faster response.</p>
-<pre><code>pwna 3.04 sec
+<pre tabindex="0"><code>pwna 3.04 sec
 pwnb 3.29 sec
 pwnc 3.11 sec
 pwnd 2.95 sec
